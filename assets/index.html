@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Xperts Xpress | Order Smart. Move Smart. Live Xperts.</title>
+    <meta
+      name="description"
+      content="Delivery, rides, shopping, errands, and smart services — all in one premium platform."
+    />
+    <meta name="theme-color" content="#020617" />
+
+    <!-- Social Share Preview -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Xperts Xpress" />
+    <meta property="og:title" content="Xperts Xpress" />
+    <meta
+      property="og:description"
+      content="Order smart. Move smart. Live Xperts."
+    />
+    <meta property="og:url" content="https://xpertsxpress.com/" />
+    <meta
+      property="og:image"
+      content="https://xpertsxpress.com/og-image.jpg"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter / X Preview -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Xperts Xpress" />
+    <meta
+      name="twitter:description"
+      content="Delivery, rides, shopping, errands, and smart services."
+    />
+    <meta
+      name="twitter:image"
+      content="https://xpertsxpress.com/og-image.jpg"
+    />
+
+    <!-- Meta Business Domain Verification -->
+    <meta name="facebook-domain-verification" content="g3aq2m6iqabuaoiurwsfz6bvdld4my" />
+
+    <!-- App / Mobile -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Xperts" />
+
+    <!-- Icons -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      window.addEventListener(
+        "error",
+        function (e) {
+          if (
+            e.error instanceof DOMException &&
+            e.error.name === "DataCloneError" &&
+            e.message &&
+            e.message.includes("PerformanceServerTiming")
+          ) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        },
+        true
+      );
+    </script>
+  </head>
+
+  <body style="margin: 0; background-color: #0b0b0f;">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <script>
+      window.addEventListener("load", function () {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) {
+              reg.unregister();
+            });
+          });
+        }
+
+        if ("caches" in window) {
+          caches.keys().then(function (names) {
+            names.forEach(function (name) {
+              caches.delete(name);
+            });
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
