@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Xperts Driver",
-    "slug": "xperts-driver-mobile",
+    "name": "Xperts Business",
+    "slug": "xperts-business-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "xperts-driver",
+    "scheme": "xperts-business",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -15,16 +15,15 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.xpertsxpress.driver",
+      "bundleIdentifier": "com.xpertsxpress.business",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Xperts Xpress uses your location to assign nearby delivery orders while you are online.",
-        "NSPhotoLibraryUsageDescription": "Xperts Xpress needs access to your photo library to upload delivery proof photos, receipt images, and driver documents.",
-        "NSCameraUsageDescription": "Xperts Xpress needs access to your camera to capture delivery proof photos and receipt images.",
+        "NSPhotoLibraryUsageDescription": "Xperts Business needs access to your photo library to upload product photos and store images.",
+        "NSCameraUsageDescription": "Xperts Business needs access to your camera to capture product photos and store images.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.xpertsxpress.driver",
+      "package": "com.xpertsxpress.business",
       "adaptiveIcon": {
         "backgroundColor": "#1A3558",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -33,9 +32,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES"
       ]
     },
     "web": {
@@ -53,8 +51,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "bb46f001-2e2e-46ed-bef7-f4d15c40c41c"
+        "projectId": "PLACEHOLDER_REPLACE_AFTER_EAS_PROJECT_CREATE"
       }
-    }
+    },
+    "owner": "xpertssmarttech"
   }
 }

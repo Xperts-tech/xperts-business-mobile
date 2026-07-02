@@ -21,21 +21,21 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+  const canSubmit = email.trim().length > 0 && password.length > 0 && !submitting;
 
   async function handleSignIn() {
     if (!canSubmit) return;
     setError(null);
-    setLoading(true);
+    setSubmitting(true);
     const { error: signInError } = await signIn(email, password);
     if (signInError) {
       setError(signInError);
-      setLoading(false);
+      setSubmitting(false);
     }
-    // On success AuthContext session update → RootNavigator renders DriverNavigator.
+    // On success, RootNavigator detects the new session and renders BusinessNavigator.
   }
 
   return (
@@ -49,20 +49,19 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* ── Branding hero ─────────────────────────────────────── */}
+        {/* ── Hero ─────────────────────────────────────────────────── */}
         <View style={[styles.hero, { paddingTop: insets.top + 44 }]}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoLetter}>X</Text>
           </View>
-          <Text style={styles.appName}>XPERTS XPRESS</Text>
-          <Text style={styles.appSub}>Driver App</Text>
+          <Text style={styles.appName}>XPERTS BUSINESS</Text>
+          <Text style={styles.appSub}>Partner Management Portal</Text>
         </View>
 
-        {/* ── Form card (white, rounded top corners fold over hero) ── */}
+        {/* ── Form card ─────────────────────────────────────────────── */}
         <View style={styles.formCard}>
           <Text style={styles.formTitle}>Sign in to your account</Text>
 
-          {/* Error banner */}
           {error ? (
             <View style={styles.errorBanner}>
               <Text style={styles.errorIcon}>⚠</Text>
@@ -70,7 +69,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             </View>
           ) : null}
 
-          {/* Email */}
           <Text style={styles.fieldLabel}>Email address</Text>
           <TextInput
             style={[styles.input, error ? styles.inputErr : null]}
@@ -82,10 +80,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             autoCorrect={false}
             keyboardType="email-address"
             returnKeyType="next"
-            editable={!loading}
+            editable={!submitting}
           />
 
-          {/* Password */}
           <Text style={styles.fieldLabel}>Password</Text>
           <TextInput
             style={[styles.input, error ? styles.inputErr : null]}
@@ -96,53 +93,49 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             secureTextEntry
             returnKeyType="done"
             onSubmitEditing={handleSignIn}
-            editable={!loading}
+            editable={!submitting}
           />
 
-          {/* Submit button */}
           <TouchableOpacity
             style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
             onPress={handleSignIn}
             disabled={!canSubmit}
             activeOpacity={0.85}
           >
-            {loading ? (
+            {submitting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.submitBtnText}>Sign In</Text>
             )}
           </TouchableOpacity>
 
-          {/* Divider */}
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            onPress={() => navigation.navigate('ForgotPassword')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.forgotBtnText}>Forgot password?</Text>
+          </TouchableOpacity>
+
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Apply to Drive */}
           <TouchableOpacity
-            style={styles.applyBtn}
-            onPress={() => navigation.navigate('Apply')}
+            style={styles.registerBtn}
+            onPress={() => navigation.navigate('Register')}
             activeOpacity={0.85}
           >
-            <Text style={styles.applyBtnText}>Apply to Drive</Text>
+            <Text style={styles.registerBtnText}>Register your business</Text>
           </TouchableOpacity>
 
-          {/* Continue application nudge */}
-          <Text style={styles.continueNote}>
-            Already applied?{'  '}
-            <Text style={styles.continueNoteEmphasis}>Sign in above</Text>
-            {' '}to check your status.
-          </Text>
-
-          {/* Partner note */}
-          <View style={styles.partnerNote}>
-            <Text style={styles.partnerNoteText}>
-              Partner delivery company?{'\n'}
-              Use the{' '}
-              <Text style={styles.partnerNoteEmphasis}>Xperts Xpress web dashboard</Text>
-              {' '}— this app is for approved individual drivers only.
+          <View style={styles.footerNote}>
+            <Text style={styles.footerNoteText}>
+              This app is for Xperts Business partners — restaurant owners, store owners, pharmacies, couriers, and event sellers.{'\n'}
+              Drivers and runners:{' '}
+              <Text style={styles.footerNoteEmphasis}>use the Xperts Pro app.</Text>
             </Text>
           </View>
         </View>
@@ -152,15 +145,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.brand,
-  },
-  scroll: {
-    flexGrow: 1,
-  },
+  root: { flex: 1, backgroundColor: colors.brand },
+  scroll: { flexGrow: 1 },
 
-  // ── Branding hero ─────────────────────────────────────────────────────────
   hero: {
     backgroundColor: colors.brand,
     alignItems: 'center',
@@ -181,27 +168,10 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  logoLetter: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: colors.brand,
-    letterSpacing: -1,
-  },
-  appName: {
-    fontSize: 21,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 3,
-    marginBottom: 7,
-  },
-  appSub: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.60)',
-    letterSpacing: 0.5,
-  },
+  logoLetter: { fontSize: 40, fontWeight: '900', color: colors.brand, letterSpacing: -1 },
+  appName: { fontSize: 21, fontWeight: '900', color: '#FFFFFF', letterSpacing: 3, marginBottom: 7 },
+  appSub: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.60)', letterSpacing: 0.5 },
 
-  // ── Form card ─────────────────────────────────────────────────────────────
   formCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
@@ -210,16 +180,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 34,
     paddingBottom: 48,
-    minHeight: 460,
+    minHeight: 480,
   },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 26,
-  },
+  formTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 26 },
 
-  // ── Error banner ──────────────────────────────────────────────────────────
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -231,20 +195,9 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 20,
   },
-  errorIcon: {
-    fontSize: 15,
-    color: colors.danger,
-    marginTop: 1,
-  },
-  errorText: {
-    flex: 1,
-    color: colors.danger,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
+  errorIcon: { fontSize: 15, color: colors.danger, marginTop: 1 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 14, lineHeight: 20, fontWeight: '500' },
 
-  // ── Inputs ────────────────────────────────────────────────────────────────
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -264,12 +217,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 20,
   },
-  inputErr: {
-    borderColor: colors.danger,
-    backgroundColor: '#FFF5F5',
-  },
+  inputErr: { borderColor: colors.danger, backgroundColor: '#FFF5F5' },
 
-  // ── Submit button ─────────────────────────────────────────────────────────
   submitBtn: {
     backgroundColor: colors.brand,
     borderRadius: 14,
@@ -282,30 +231,14 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  submitBtnDisabled: {
-    opacity: 0.45,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  submitBtnText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
+  submitBtnDisabled: { opacity: 0.45, shadowOpacity: 0, elevation: 0 },
+  submitBtnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
 
-  // ── Divider ───────────────────────────────────────────────────────────────
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-    gap: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.borderLight,
-  },
+  forgotBtn: { alignItems: 'center', marginTop: 14 },
+  forgotBtnText: { color: colors.brand, fontSize: 14, fontWeight: '600' },
+
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 22, gap: 10 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.borderLight },
   dividerText: {
     fontSize: 12,
     fontWeight: '600',
@@ -314,8 +247,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── Apply button ──────────────────────────────────────────────────────────
-  applyBtn: {
+  registerBtn: {
     backgroundColor: '#fff',
     borderRadius: 14,
     paddingVertical: 17,
@@ -323,43 +255,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.brand,
   },
-  applyBtnText: {
-    color: colors.brand,
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
+  registerBtnText: { color: colors.brand, fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
 
-  // ── Continue note ─────────────────────────────────────────────────────────
-  continueNote: {
-    fontSize: 12,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 14,
-    lineHeight: 18,
-  },
-  continueNoteEmphasis: {
-    color: colors.brand,
-    fontWeight: '700',
-  },
-
-  // ── Partner note ──────────────────────────────────────────────────────────
-  partnerNote: {
+  footerNote: {
     backgroundColor: colors.bg,
     borderRadius: 10,
     padding: 12,
-    marginTop: 18,
+    marginTop: 20,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  partnerNoteText: {
-    fontSize: 12,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  partnerNoteEmphasis: {
-    color: colors.textSecondary,
-    fontWeight: '700',
-  },
+  footerNoteText: { fontSize: 12, color: colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  footerNoteEmphasis: { color: colors.textSecondary, fontWeight: '700' },
 });

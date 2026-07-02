@@ -1,72 +1,69 @@
-import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
-// ── Root (auth gate) ─────────────────────────────────────────────────────────
+// ── Root stack ────────────────────────────────────────────────────────────────
+
 export type RootStackParamList = {
   Auth: undefined;
-  Driver: undefined;
-  /** Shown when session exists but driver is not yet approved */
-  ApplicationStatus: undefined;
+  Business: undefined;
+  AccessDenied: undefined;
 };
 
 // ── Auth stack ────────────────────────────────────────────────────────────────
+
 export type AuthStackParamList = {
   Login: undefined;
-  Apply: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+  StaffInviteAccept: { token?: string };
 };
 
-// ── Driver root stack (tabs + modals) ─────────────────────────────────────────
-export type DriverStackParamList = {
-  // Allow nested tab navigation: navigate('DriverTabs', { screen: 'ActiveOrder' })
-  DriverTabs: NavigatorScreenParams<DriverTabParamList> | undefined;
-  IncomingOffer: { attemptId: string };
-  OrderChat: {
-    orderId: string;
-    conversationId: string;
-    customerName: string | null;
-    orderRef: string | null;
-    customerId: string | null;
-  };
-  ContractRunDetail: { routeId: string; driverId: string };
-  VehicleRental: undefined;
+// ── Business stack (tabs + modal screens) ─────────────────────────────────────
+
+export type BusinessStackParamList = {
+  BusinessTabs: undefined;
+  BusinessSelector: undefined;
+  OrderDetail: { orderId: string };
+  MessageThread: { orderId: string; threadId: string; orderNumber?: string };
+  ProductDetail: { productId: string };
+  Specials: undefined;
+  Staff: undefined;
+  StoreProfile: undefined;
+  LaunchChecklist: undefined;
+  Payouts: undefined;
+  UploadStudio: undefined;
 };
 
-// ── Driver bottom tabs ────────────────────────────────────────────────────────
-export type DriverTabParamList = {
+// ── Business bottom tabs ──────────────────────────────────────────────────────
+
+export type BusinessTabParamList = {
   Home: undefined;
-  ActiveOrder: undefined;
-  Earnings: undefined;
-  ContractRuns: undefined;
-  Profile: undefined;
+  Orders: undefined;
+  Products: undefined;
+  Messages: undefined;
+  More: undefined;
 };
 
-// ── Convenience screen prop types ─────────────────────────────────────────────
-export type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-export type ApplyScreenProps = NativeStackScreenProps<AuthStackParamList, 'Apply'>;
+// ── Screen prop types ─────────────────────────────────────────────────────────
 
-export type DriverHomeScreenProps = BottomTabScreenProps<DriverTabParamList, 'Home'>;
-export type ActiveOrderScreenProps = BottomTabScreenProps<DriverTabParamList, 'ActiveOrder'>;
-export type EarningsScreenProps = BottomTabScreenProps<DriverTabParamList, 'Earnings'>;
-export type ContractRunsScreenProps = BottomTabScreenProps<DriverTabParamList, 'ContractRuns'>;
-export type ProfileScreenProps = BottomTabScreenProps<DriverTabParamList, 'Profile'>;
+export type LoginScreenProps            = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+export type RegisterScreenProps         = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+export type ForgotPasswordScreenProps   = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
+export type StaffInviteAcceptScreenProps = NativeStackScreenProps<AuthStackParamList, 'StaffInviteAccept'>;
 
-export type IncomingOfferScreenProps = NativeStackScreenProps<
-  DriverStackParamList,
-  'IncomingOffer'
->;
+export type HomeScreenProps     = BottomTabScreenProps<BusinessTabParamList, 'Home'>;
+export type OrdersScreenProps   = BottomTabScreenProps<BusinessTabParamList, 'Orders'>;
+export type ProductsScreenProps = BottomTabScreenProps<BusinessTabParamList, 'Products'>;
+export type MessagesScreenProps = BottomTabScreenProps<BusinessTabParamList, 'Messages'>;
+export type MoreScreenProps     = BottomTabScreenProps<BusinessTabParamList, 'More'>;
 
-export type OrderChatScreenProps = NativeStackScreenProps<
-  DriverStackParamList,
-  'OrderChat'
->;
-
-export type ContractRunDetailScreenProps = NativeStackScreenProps<
-  DriverStackParamList,
-  'ContractRunDetail'
->;
-
-export type VehicleRentalScreenProps = NativeStackScreenProps<
-  DriverStackParamList,
-  'VehicleRental'
->;
+export type BusinessSelectorScreenProps = NativeStackScreenProps<BusinessStackParamList, 'BusinessSelector'>;
+export type OrderDetailScreenProps     = NativeStackScreenProps<BusinessStackParamList, 'OrderDetail'>;
+export type MessageThreadScreenProps   = NativeStackScreenProps<BusinessStackParamList, 'MessageThread'>;
+export type ProductDetailScreenProps   = NativeStackScreenProps<BusinessStackParamList, 'ProductDetail'>;
+export type SpecialsScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'Specials'>;
+export type StaffScreenProps           = NativeStackScreenProps<BusinessStackParamList, 'Staff'>;
+export type StoreProfileScreenProps    = NativeStackScreenProps<BusinessStackParamList, 'StoreProfile'>;
+export type LaunchChecklistScreenProps = NativeStackScreenProps<BusinessStackParamList, 'LaunchChecklist'>;
+export type PayoutsScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'Payouts'>;
+export type UploadStudioScreenProps    = NativeStackScreenProps<BusinessStackParamList, 'UploadStudio'>;

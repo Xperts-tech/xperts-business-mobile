@@ -1,53 +1,85 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { isDriverAppRole, type DriverRow, type UserProfile } from '@/types/driver';
-import { fetchProfilePhotoUrl } from '@/services/driverProfileService';
+import type { BusinessStaffMembership, UserProfile } from '@/types/business';
+import type { StaffRole } from '@/types/permissions';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
-  driverRow: DriverRow | null;
-  /** True only during the initial boot session check — never toggled by signIn/signOut */
+  loading: boolean;
+  /** True only during the one-time boot session check */
   initializing: boolean;
-  /** Signed URL for the driver's profile_photo document (1-hour TTL). Null if no photo uploaded. */
-  profilePhotoUrl: string | null;
+  isAuthenticated: boolean;
+  /** profile.role === 'business' */
+  isBusinessUser: boolean;
+  /** profile.role === 'admin' or 'superadmin' */
+  isAdmin: boolean;
+  /** Has an active business_staff membership */
+  isStaffMember: boolean;
+  /** The staff role from business_staff (null for owners/admins) */
+  staffRole: StaffRole | null;
+  /** business_id from the staff membership */
+  staffBusinessId: string | null;
+  /** store_id from the staff membership (null if not scoped to a store) */
+  staffStoreId: string | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  /** Re-fetches the drivers row and updates driverRow in context. Call after any status update. */
-  refreshDriverRow: () => Promise<void>;
-  /** Re-fetches the profile photo signed URL. Call after uploading a new profile_photo document. */
-  refreshProfilePhoto: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// ── Business role guard ───────────────────────────────────────────────────────
+
+function isBusinessAppRole(role: string | null | undefined): boolean {
+  const r = (role ?? '').toLowerCase();
+  return r === 'business' || r === 'admin' || r === 'superadmin';
+}
+
+// ── Data fetcher ──────────────────────────────────────────────────────────────
+
 async function fetchUserData(userId: string): Promise<{
   profile: UserProfile | null;
-  driverRow: DriverRow | null;
+  staffMembership: BusinessStaffMembership | null;
 }> {
-  const [{ data: profile }, { data: driverRow }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, role, full_name, phone')
-      .eq('id', userId)
-      .maybeSingle(),
-    supabase
-      .from('drivers')
-      .select('id, profile_id, zone_id, phone, vehicle_type, vehicle_plate, approval_status, enforcement_status, online_status, active_order_id, rating, completed_jobs, service_area, corporate_driver_status, corporate_police_record_expiry, can_deliver_food, can_do_errands, can_do_courier, can_do_rides, max_active_orders, suspended_at, suspension_reason, rejected_reason, rejection_notes, more_info_requested_at, more_info_notes, metadata')
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('id, role, full_name, phone')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const profile = (profileData as UserProfile) ?? null;
+
+  // For business/admin roles no staff lookup needed — they have full access.
+  // For any other role, check if they have an active business_staff membership.
+  let staffMembership: BusinessStaffMembership | null = null;
+
+  if (profile && !isBusinessAppRole(profile.role)) {
+    const { data: staffData } = await supabase
+      .from('business_staff')
+      .select('id, business_id, store_id, profile_id, email, full_name, role, status, accepted_at, invite_expires_at')
       .eq('profile_id', userId)
-      .maybeSingle(),
-  ]);
-  return { profile: profile ?? null, driverRow: driverRow ?? null };
+      .eq('status', 'active')
+      .maybeSingle();
+
+    staffMembership = (staffData as BusinessStaffMembership) ?? null;
+  }
+
+  return { profile, staffMembership };
 }
+
+// ── Provider ──────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [driverRow, setDriverRow] = useState<DriverRow | null>(null);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [staffMembership, setStaffMembership] = useState<BusinessStaffMembership | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -58,37 +90,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mountedRef.current) return;
 
       if (data.session) {
-        const { profile: p, driverRow: d } = await fetchUserData(data.session.user.id);
+        const { profile: p, staffMembership: sm } = await fetchUserData(data.session.user.id);
         if (!mountedRef.current) return;
 
-        if (!isDriverAppRole(p?.role)) {
-          // Persisted session belongs to a non-driver account — clear it.
+        const hasAccess = isBusinessAppRole(p?.role) || sm !== null;
+
+        if (!hasAccess) {
+          // Not a business user and no staff membership — boot them out.
           await supabase.auth.signOut();
           if (mountedRef.current) setInitializing(false);
           return;
         }
-        setProfile(p);
-        setDriverRow(d);
-        setSession(data.session);
 
-        if (d?.id) {
-          const url = await fetchProfilePhotoUrl(data.session.user.id, d.id);
-          if (mountedRef.current) setProfilePhotoUrl(url);
-        }
+        setProfile(p);
+        setStaffMembership(sm);
+        setSession(data.session);
       }
 
       setInitializing(false);
     }
 
-    boot();
+    void boot();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mountedRef.current) return;
       setSession(newSession);
       if (!newSession) {
         setProfile(null);
-        setDriverRow(null);
-        setProfilePhotoUrl(null);
+        setStaffMembership(null);
       }
     });
 
@@ -98,68 +127,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // ── signIn ────────────────────────────────────────────────────────────────
+
   async function signIn(email: string, password: string): Promise<{ error: string | null }> {
+    setLoading(true);
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
     if (authError) {
+      setLoading(false);
       return { error: friendlyAuthError(authError.message) };
     }
 
     const userId = authData.user?.id;
     if (!userId) {
+      setLoading(false);
       return { error: 'Sign in succeeded but no user returned. Please try again.' };
     }
 
-    const { profile: p, driverRow: d } = await fetchUserData(userId);
+    const { profile: p, staffMembership: sm } = await fetchUserData(userId);
+    const hasAccess = isBusinessAppRole(p?.role) || sm !== null;
 
-    if (!isDriverAppRole(p?.role)) {
+    if (!hasAccess) {
       await supabase.auth.signOut();
+      setLoading(false);
       return {
-        error: p?.role === 'delivery_partner'
-          ? 'The partner dashboard is available on the Xperts Xpress web dashboard. This mobile app is for approved drivers only.'
-          : 'This app is for Xperts drivers only.',
+        error:
+          'This app is for Xperts Business partners only. If you are a driver or service worker, please use the Xperts Pro app.',
       };
     }
 
-    setProfile(p);
-    setDriverRow(d);
-
-    if (d?.id) {
-      const url = await fetchProfilePhotoUrl(userId, d.id);
-      if (mountedRef.current) setProfilePhotoUrl(url);
+    if (mountedRef.current) {
+      setProfile(p);
+      setStaffMembership(sm);
+      setLoading(false);
     }
 
-    // session state is updated by onAuthStateChange listener above
     return { error: null };
   }
 
-  async function refreshDriverRow() {
-    const userId = session?.user?.id;
-    if (!userId) return;
-    const { data } = await supabase
-      .from('drivers')
-      .select('id, profile_id, zone_id, phone, vehicle_type, vehicle_plate, approval_status, enforcement_status, online_status, active_order_id, rating, completed_jobs, service_area, corporate_driver_status, corporate_police_record_expiry, can_deliver_food, can_do_errands, can_do_courier, can_do_rides, max_active_orders, suspended_at, suspension_reason, rejected_reason, rejection_notes, more_info_requested_at, more_info_notes, metadata')
-      .eq('profile_id', userId)
-      .maybeSingle();
-    if (mountedRef.current) {
-      setDriverRow(data ?? null);
-    }
-  }
-
-  async function refreshProfilePhoto() {
-    const driverId = driverRow?.id;
-    const userId = session?.user?.id;
-    if (!driverId || !userId) return;
-    const url = await fetchProfilePhotoUrl(userId, driverId);
-    if (mountedRef.current) setProfilePhotoUrl(url);
-  }
+  // ── signOut ───────────────────────────────────────────────────────────────
 
   async function signOut() {
     await supabase.auth.signOut();
   }
+
+  // ── refreshProfile ────────────────────────────────────────────────────────
+
+  async function refreshProfile() {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const { profile: p, staffMembership: sm } = await fetchUserData(userId);
+    if (mountedRef.current) {
+      setProfile(p);
+      setStaffMembership(sm);
+    }
+  }
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  const isAdmin      = profile?.role === 'admin' || profile?.role === 'superadmin';
+  const isBusinessUser = profile?.role === 'business';
+  const isStaffMember  = staffMembership !== null;
+  const staffRole      = (staffMembership?.role as StaffRole) ?? null;
+  const staffBusinessId = staffMembership?.business_id ?? null;
+  const staffStoreId    = staffMembership?.store_id ?? null;
+  const isAuthenticated = session !== null && profile !== null;
 
   return (
     <AuthContext.Provider
@@ -167,13 +203,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         user: session?.user ?? null,
         profile,
-        driverRow,
-        profilePhotoUrl,
+        loading,
         initializing,
+        isAuthenticated,
+        isBusinessUser,
+        isAdmin,
+        isStaffMember,
+        staffRole,
+        staffBusinessId,
+        staffStoreId,
         signIn,
         signOut,
-        refreshDriverRow,
-        refreshProfilePhoto,
+        refreshProfile,
       }}
     >
       {children}
@@ -187,19 +228,17 @@ export function useAuth() {
   return ctx;
 }
 
+// ── Error helpers ─────────────────────────────────────────────────────────────
+
 function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes('email not confirmed')) {
+  if (m.includes('email not confirmed'))
     return 'Please confirm your email before signing in.';
-  }
-  if (m.includes('invalid login') || m.includes('invalid credentials')) {
+  if (m.includes('invalid login') || m.includes('invalid credentials'))
     return 'Incorrect email or password. Please check and try again.';
-  }
-  if (m.includes('too many requests') || m.includes('rate limit')) {
+  if (m.includes('too many requests') || m.includes('rate limit'))
     return 'Too many attempts. Please wait a moment and try again.';
-  }
-  if (m.includes('network') || m.includes('fetch')) {
+  if (m.includes('network') || m.includes('fetch'))
     return 'No connection. Check your internet and try again.';
-  }
   return message || 'Sign in failed. Please try again.';
 }
