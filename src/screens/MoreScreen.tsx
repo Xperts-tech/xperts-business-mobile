@@ -149,6 +149,21 @@ export default function MoreScreen() {
         {/* ── Tools ────────────────────────────────────────────────── */}
         <MoreSection title="Tools">
           <MoreRow
+            icon="🪙"
+            label="Xperts Coins"
+            onPress={() => navigation.navigate('Coins')}
+          />
+          <MoreRow
+            icon="🛒"
+            label="Xperts Shop"
+            onPress={() => navigation.navigate('Shop')}
+          />
+          <MoreRow
+            icon="🛠️"
+            label="Xperts Services"
+            onPress={() => navigation.navigate('ServicesPortal')}
+          />
+          <MoreRow
             icon="📋"
             label="Launch Checklist"
             onPress={() => navigation.navigate('LaunchChecklist')}
@@ -164,7 +179,16 @@ export default function MoreScreen() {
 
         {/* ── Support ──────────────────────────────────────────────── */}
         <MoreSection title="Support &amp; Settings">
-          <MoreRow icon="💬" label="Support" disabled />
+          <MoreRow
+            icon="🔔"
+            label="Notifications"
+            onPress={() => navigation.navigate('Notifications')}
+          />
+          <MoreRow
+            icon="💬"
+            label="Support"
+            onPress={() => navigation.navigate('Support')}
+          />
           <MoreRow icon="⚙️" label="Settings" disabled />
           <MoreRow icon="🚪" label="Sign Out" onPress={handleSignOut} danger />
         </MoreSection>

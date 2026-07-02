@@ -407,7 +407,11 @@ export default function HomeScreen() {
                 <Text style={styles.quickActionIcon}>➕</Text>
                 <Text style={styles.quickActionLabel}>Add product</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} activeOpacity={0.75} disabled>
+              <TouchableOpacity
+                style={styles.quickAction}
+                activeOpacity={0.75}
+                onPress={() => navigation.navigate('Support')}
+              >
                 <Text style={styles.quickActionIcon}>💬</Text>
                 <Text style={styles.quickActionLabel}>Support</Text>
               </TouchableOpacity>

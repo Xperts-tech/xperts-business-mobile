@@ -16,6 +16,16 @@ import MessagesScreen from '@/screens/MessagesScreen';
 import MessageThreadScreen from '@/screens/MessageThreadScreen';
 import MoreScreen from '@/screens/MoreScreen';
 import BusinessSelectorScreen from '@/screens/BusinessSelectorScreen';
+import ServicesPortalScreen from '@/screens/ServicesPortalScreen';
+import ServiceRequestNewScreen from '@/screens/ServiceRequestNewScreen';
+import ServiceRequestDetailScreen from '@/screens/ServiceRequestDetailScreen';
+import NotificationsScreen from '@/screens/NotificationsScreen';
+import CoinsScreen from '@/screens/CoinsScreen';
+import ShopScreen from '@/screens/ShopScreen';
+import ShopOrderDetailScreen from '@/screens/ShopOrderDetailScreen';
+import SupportScreen from '@/screens/SupportScreen';
+import SupportCaseDetailScreen from '@/screens/SupportCaseDetailScreen';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { colors } from '@/constants/colors';
@@ -118,6 +128,7 @@ function BusinessTabs() {
 const Stack = createNativeStackNavigator<BusinessStackParamList>();
 
 export default function BusinessNavigator() {
+  usePushNotifications();
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="BusinessTabs" component={BusinessTabs} />
@@ -170,6 +181,51 @@ export default function BusinessNavigator() {
         name="UploadStudio"
         component={UploadStudioScreen}
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="ServicesPortal"
+        component={ServicesPortalScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ServiceRequestNew"
+        component={ServiceRequestNewScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ServiceRequestDetail"
+        component={ServiceRequestDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Coins"
+        component={CoinsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ShopOrderDetail"
+        component={ShopOrderDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Support"
+        component={SupportScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="SupportCaseDetail"
+        component={SupportCaseDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
   );

@@ -32,6 +32,15 @@ export type BusinessStackParamList = {
   LaunchChecklist: undefined;
   Payouts: undefined;
   UploadStudio: undefined;
+  ServicesPortal: undefined;
+  ServiceRequestNew: { requestType: string };
+  ServiceRequestDetail: { requestId: string };
+  Coins: undefined;
+  Shop: undefined;
+  ShopOrderDetail: { orderId: string };
+  Support: undefined;
+  SupportCaseDetail: { requestId: string };
+  Notifications: undefined;
 };
 
 // ── Business bottom tabs ──────────────────────────────────────────────────────
@@ -66,4 +75,13 @@ export type StaffScreenProps           = NativeStackScreenProps<BusinessStackPar
 export type StoreProfileScreenProps    = NativeStackScreenProps<BusinessStackParamList, 'StoreProfile'>;
 export type LaunchChecklistScreenProps = NativeStackScreenProps<BusinessStackParamList, 'LaunchChecklist'>;
 export type PayoutsScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'Payouts'>;
-export type UploadStudioScreenProps    = NativeStackScreenProps<BusinessStackParamList, 'UploadStudio'>;
+export type UploadStudioScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'UploadStudio'>;
+export type ServicesPortalScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'ServicesPortal'>;
+export type ServiceRequestNewScreenProps    = NativeStackScreenProps<BusinessStackParamList, 'ServiceRequestNew'>;
+export type ServiceRequestDetailScreenProps = NativeStackScreenProps<BusinessStackParamList, 'ServiceRequestDetail'>;
+export type CoinsScreenProps               = NativeStackScreenProps<BusinessStackParamList, 'Coins'>;
+export type ShopScreenProps                = NativeStackScreenProps<BusinessStackParamList, 'Shop'>;
+export type ShopOrderDetailScreenProps     = NativeStackScreenProps<BusinessStackParamList, 'ShopOrderDetail'>;
+export type SupportScreenProps             = NativeStackScreenProps<BusinessStackParamList, 'Support'>;
+export type SupportCaseDetailScreenProps   = NativeStackScreenProps<BusinessStackParamList, 'SupportCaseDetail'>;
+export type NotificationsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'Notifications'>;
