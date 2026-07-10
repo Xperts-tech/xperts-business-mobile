@@ -1,9 +1,11 @@
 export const colors = {
-  // ── Xperts brand (Navy) ───────────────────────────────────────────────────
-  brand: '#1A3558',        // Xperts Navy — primary
-  brandLight: '#2B5282',   // Mid navy
-  brandDark: '#0E2240',    // Deep navy
-  brandSurface: '#E8EEF8', // Light navy tint — chips, selected states
+  // ── Xperts brand ──────────────────────────────────────────────────────────
+  brand: '#10B880',       // Xperts Green — primary
+  brandLight: '#34C99A',
+  brandDark: '#009068',   // Deep Green
+  brandSurface: '#ECFDF5',
+
+  navy: '#020617',        // Xperts Navy
 
   // ── Semantic colours ──────────────────────────────────────────────────────
   success: '#16A34A',
@@ -21,22 +23,23 @@ export const colors = {
   info: '#0284C7',
 
   // ── Layout ────────────────────────────────────────────────────────────────
-  bg: '#EFF2F7',           // Soft cool slate — main screen background
+  bg: '#F8FAFC',
   card: '#FFFFFF',
-  border: '#D8E4F0',
-  borderLight: '#EAF0F8',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
 
   // ── Typography ────────────────────────────────────────────────────────────
-  textPrimary: '#0D1B2E',  // Near-black navy
-  textSecondary: '#4A6080',
-  textMuted: '#8FA3BA',
+  textPrimary: '#020617',
+  textSecondary: '#334155',
+  textMuted: '#64748B',
   textOnBrand: '#FFFFFF',
+  white: '#FFFFFF',
 
   // ── Navigation tabs ───────────────────────────────────────────────────────
-  tabActive: '#1A3558',
-  tabInactive: '#8FA3BA',
+  tabActive: '#10B880',
+  tabInactive: '#94A3B8',
 
-  // ── Driver online status ──────────────────────────────────────────────────
+  // ── Online status (kept for driver-related displays) ──────────────────────
   online: '#16A34A',
-  offline: '#8FA3BA',
+  offline: '#94A3B8',
 } as const;

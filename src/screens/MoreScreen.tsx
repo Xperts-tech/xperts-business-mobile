@@ -149,6 +149,16 @@ export default function MoreScreen() {
         {/* ── Tools ────────────────────────────────────────────────── */}
         <MoreSection title="Tools">
           <MoreRow
+            icon="📊"
+            label="Analytics"
+            onPress={() => navigation.navigate('Analytics')}
+          />
+          <MoreRow
+            icon="🚀"
+            label="Growth Studio"
+            onPress={() => navigation.navigate('GrowthStudio')}
+          />
+          <MoreRow
             icon="🪙"
             label="Xperts Coins"
             onPress={() => navigation.navigate('Coins')}

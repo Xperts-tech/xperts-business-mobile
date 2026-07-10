@@ -5,16 +5,19 @@
   },
   "build": {
     "development": {
+      "channel": "development",
       "distribution": "internal",
       "ios": {
         "simulator": true
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://pliritynyqvxhcchgnke.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI",
+        "EXPO_PUBLIC_SUPPORT_WA": "18767883666"
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -24,18 +27,25 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://pliritynyqvxhcchgnke.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI",
+        "EXPO_PUBLIC_SUPPORT_WA": "18767883666"
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://pliritynyqvxhcchgnke.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsaXJpdHlueXF2eGhjY2hnbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTUyNTYsImV4cCI6MjA5MjIzMTI1Nn0.O5LLqmz3w6JNHvRU7S8Xt_2xA-YGTE4-5wf1Vy2daRI",
+        "EXPO_PUBLIC_SUPPORT_WA": "18767883666"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6789231563"
+      }
+    }
   }
 }

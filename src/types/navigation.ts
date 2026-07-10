@@ -41,6 +41,12 @@ export type BusinessStackParamList = {
   Support: undefined;
   SupportCaseDetail: { requestId: string };
   Notifications: undefined;
+  Analytics: undefined;
+  GrowthEngine: undefined;    // kept for back-compat; navigator maps to GrowthStudio
+  GrowthStudio: undefined;
+  CreativeStudio: undefined;
+  PromoRequests: undefined;
+  StoreQRCode: undefined;
 };
 
 // ── Business bottom tabs ──────────────────────────────────────────────────────
@@ -85,3 +91,9 @@ export type ShopOrderDetailScreenProps     = NativeStackScreenProps<BusinessStac
 export type SupportScreenProps             = NativeStackScreenProps<BusinessStackParamList, 'Support'>;
 export type SupportCaseDetailScreenProps   = NativeStackScreenProps<BusinessStackParamList, 'SupportCaseDetail'>;
 export type NotificationsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'Notifications'>;
+export type AnalyticsScreenProps           = NativeStackScreenProps<BusinessStackParamList, 'Analytics'>;
+export type GrowthEngineScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'GrowthEngine'>;
+export type GrowthStudioScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'GrowthStudio'>;
+export type CreativeStudioScreenProps      = NativeStackScreenProps<BusinessStackParamList, 'CreativeStudio'>;
+export type PromoRequestsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'PromoRequests'>;
+export type StoreQRCodeScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'StoreQRCode'>;
