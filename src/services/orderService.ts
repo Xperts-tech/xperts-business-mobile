@@ -9,6 +9,14 @@ import {
 
 const PAGE_SIZE = 20;
 
+// orders has no `special_instructions` column — derive it from the customer's
+// note fields (metadata.special_instructions, else delivery_note).
+function deriveInstructions(o: Order): string | null {
+  const fromMeta = o.metadata?.special_instructions;
+  if (typeof fromMeta === 'string' && fromMeta.trim()) return fromMeta;
+  return o.delivery_note ?? null;
+}
+
 export type OrderFilter = 'all' | 'needs_action' | 'active' | 'done';
 
 const DONE_STATUSES = ['delivered', 'completed', 'cancelled', 'rejected'];
@@ -23,7 +31,7 @@ export async function loadOrders(
   let query = supabase
     .from('orders')
     .select(
-      'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, order_number, customer_id, special_instructions',
+      'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, order_number, customer_id, delivery_note',
     )
     .eq('store_id', storeId)
     .order('created_at', { ascending: false })
@@ -46,6 +54,7 @@ export async function loadOrders(
   if (error) return { orders: [], hasMore: false, error: error.message };
 
   const rows = (data ?? []) as Order[];
+  for (const o of rows) o.special_instructions = deriveInstructions(o);
   return {
     orders: rows.slice(0, PAGE_SIZE),
     hasMore: rows.length > PAGE_SIZE,
@@ -62,7 +71,7 @@ export async function loadOrderDetail(
     supabase
       .from('orders')
       .select(
-        'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, subtotal, delivery_fee, order_number, customer_id, special_instructions',
+        'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, subtotal, delivery_fee, order_number, customer_id, delivery_note',
       )
       .eq('id', orderId)
       .maybeSingle(),
@@ -77,6 +86,7 @@ export async function loadOrderDetail(
   if (!orderRes.data) return { order: null, error: 'Order not found' };
 
   const order = orderRes.data as Order;
+  order.special_instructions = deriveInstructions(order);
   order.items = (itemsRes.data ?? []) as OrderItem[];
 
   // Load customer profile if available

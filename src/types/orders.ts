@@ -39,7 +39,8 @@ export interface Order {
   subtotal?: number | null;
   delivery_fee?: number | null;
   order_number?: string | null;
-  special_instructions?: string | null;
+  delivery_note?: string | null;
+  special_instructions?: string | null; // derived: metadata.special_instructions ?? delivery_note
   created_at: string;
   updated_at?: string | null;
   metadata?: Record<string, unknown> | null;
