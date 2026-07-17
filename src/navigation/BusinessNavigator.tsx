@@ -260,11 +260,6 @@ export default function BusinessNavigator() {
         options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
-        name="GrowthEngine"
-        component={GrowthStudioScreen as React.ComponentType<object>}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <Stack.Screen
         name="CreativeStudio"
         component={CreativeStudioScreen}
         options={{ animation: 'slide_from_right' }}

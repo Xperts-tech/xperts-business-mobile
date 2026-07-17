@@ -52,6 +52,22 @@ export async function toggleProductAvailability(
   return { error: error?.message ?? null };
 }
 
+// ── Bulk availability (whole store) ───────────────────────────────────────────
+// One update for the entire store catalogue — used for "open/close" style actions
+// (e.g. mark everything sold out at end of day, or all available at store open).
+
+export async function bulkSetStoreAvailability(
+  storeId: string,
+  isAvailable: boolean,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('products')
+    .update({ is_available: isAvailable, updated_at: new Date().toISOString() })
+    .eq('store_id', storeId);
+
+  return { error: error?.message ?? null };
+}
+
 // ── Quick edit ────────────────────────────────────────────────────────────────
 
 export type QuickEditFields = {

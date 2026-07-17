@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -18,6 +19,7 @@ import { colors } from '@/constants/colors';
 import {
   loadProducts,
   toggleProductAvailability,
+  bulkSetStoreAvailability,
 } from '@/services/productService';
 import {
   formatPrice,
@@ -116,6 +118,7 @@ export default function ProductsScreen() {
 
   // Optimistic availability map: productId → overridden boolean
   const [optimisticAvail, setOptimisticAvail] = useState<Record<string, boolean>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const activeFilter = useRef(filter);
   activeFilter.current = filter;
@@ -172,6 +175,30 @@ export default function ProductsScreen() {
     }
   }
 
+  function handleBulk(isAvailable: boolean) {
+    if (!selectedStoreId || bulkBusy) return;
+    Alert.alert(
+      isAvailable ? 'Mark all available?' : 'Mark all sold out?',
+      isAvailable
+        ? 'Every product in this store will be marked as available.'
+        : 'Every product in this store will be marked as sold out.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isAvailable ? 'Mark available' : 'Mark sold out',
+          style: isAvailable ? 'default' : 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            const { error: err } = await bulkSetStoreAvailability(selectedStoreId, isAvailable);
+            setBulkBusy(false);
+            if (err) Alert.alert('Could not update', err);
+            else await fetchProducts(activeFilter.current, 0, false);
+          },
+        },
+      ],
+    );
+  }
+
   const noStore = !selectedStoreId;
 
   return (
@@ -205,6 +232,30 @@ export default function ProductsScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* ── Bulk availability bar ───────────────────────────────── */}
+      {canToggle && !noStore && !loading && !error && products.length > 0 && (
+        <View style={styles.bulkBar}>
+          <Text style={styles.bulkLabel}>Set all:</Text>
+          <TouchableOpacity
+            style={[styles.bulkBtn, styles.bulkBtnAvail, bulkBusy && styles.bulkBtnDisabled]}
+            onPress={() => handleBulk(true)}
+            disabled={bulkBusy}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bulkBtnText, { color: colors.success }]}>✓ Available</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bulkBtn, styles.bulkBtnSold, bulkBusy && styles.bulkBtnDisabled]}
+            onPress={() => handleBulk(false)}
+            disabled={bulkBusy}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bulkBtnText, { color: colors.danger }]}>Sold out</Text>
+          </TouchableOpacity>
+          {bulkBusy && <ActivityIndicator size="small" color={colors.brand} style={{ marginLeft: 4 }} />}
+        </View>
+      )}
 
       {/* ── Content ─────────────────────────────────────────────── */}
       {noStore ? (
@@ -327,6 +378,28 @@ const styles = StyleSheet.create({
   filterTabActive: { borderBottomColor: colors.brand },
   filterTabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   filterTabTextActive: { color: colors.brand },
+
+  bulkBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  bulkLabel: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  bulkBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  bulkBtnAvail: { backgroundColor: colors.success + '12', borderColor: colors.success + '45' },
+  bulkBtnSold: { backgroundColor: colors.danger + '12', borderColor: colors.danger + '45' },
+  bulkBtnDisabled: { opacity: 0.5 },
+  bulkBtnText: { fontSize: 12, fontWeight: '700' },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },

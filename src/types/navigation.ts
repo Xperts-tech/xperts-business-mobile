@@ -42,7 +42,6 @@ export type BusinessStackParamList = {
   SupportCaseDetail: { requestId: string };
   Notifications: undefined;
   Analytics: undefined;
-  GrowthEngine: undefined;    // kept for back-compat; navigator maps to GrowthStudio
   GrowthStudio: undefined;
   CreativeStudio: undefined;
   PromoRequests: undefined;
@@ -92,7 +91,6 @@ export type SupportScreenProps             = NativeStackScreenProps<BusinessStac
 export type SupportCaseDetailScreenProps   = NativeStackScreenProps<BusinessStackParamList, 'SupportCaseDetail'>;
 export type NotificationsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'Notifications'>;
 export type AnalyticsScreenProps           = NativeStackScreenProps<BusinessStackParamList, 'Analytics'>;
-export type GrowthEngineScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'GrowthEngine'>;
 export type GrowthStudioScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'GrowthStudio'>;
 export type CreativeStudioScreenProps      = NativeStackScreenProps<BusinessStackParamList, 'CreativeStudio'>;
 export type PromoRequestsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'PromoRequests'>;
