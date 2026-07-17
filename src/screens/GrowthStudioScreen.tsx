@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { supabase } from '@/lib/supabase';
+import { loadGrowthInsights, type GrowthRecommendation } from '@/services/growthService';
 import type { GrowthStudioScreenProps } from '@/types/navigation';
 
 type HubTile = {
@@ -80,9 +81,11 @@ const TIER_BADGE: Record<string, { label: string; color: string; bg: string }> =
 
 export default function GrowthStudioScreen({ navigation }: GrowthStudioScreenProps) {
   const insets = useSafeAreaInsets();
-  const { selectedBusiness } = useBusiness();
+  const { selectedBusiness, selectedStore, selectedStoreId } = useBusiness();
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [loadingCoins, setLoadingCoins] = useState(true);
+  const [recommendations, setRecommendations] = useState<GrowthRecommendation[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
 
   const loadCoins = useCallback(async () => {
     if (!selectedBusiness?.id) { setLoadingCoins(false); return; }
@@ -95,7 +98,31 @@ export default function GrowthStudioScreen({ navigation }: GrowthStudioScreenPro
     setLoadingCoins(false);
   }, [selectedBusiness?.id]);
 
+  const loadRecs = useCallback(async () => {
+    if (!selectedBusiness?.id || !selectedStoreId) { setLoadingRecs(false); return; }
+    setLoadingRecs(true);
+    const result = await loadGrowthInsights({
+      storeId: selectedStoreId,
+      businessId: selectedBusiness.id,
+      store: selectedStore,
+    });
+    setRecommendations(result.recommendations);
+    setLoadingRecs(false);
+  }, [selectedBusiness?.id, selectedStoreId, selectedStore]);
+
   useEffect(() => { loadCoins(); }, [loadCoins]);
+  useEffect(() => { loadRecs(); }, [loadRecs]);
+
+  function goToReco(rec: GrowthRecommendation) {
+    if (!rec.screen) return;
+    if (rec.screen === 'Products') {
+      // Products is a bottom tab, not a stack screen — jump into the tab navigator.
+      (navigation as unknown as { navigate: (name: string, params?: object) => void })
+        .navigate('BusinessTabs', { screen: 'Products' });
+    } else {
+      navigation.navigate(rec.screen as never);
+    }
+  }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -142,8 +169,53 @@ export default function GrowthStudioScreen({ navigation }: GrowthStudioScreenPro
           </View>
         </View>
 
+        {/* Recommended for you — data-driven */}
+        {loadingRecs ? (
+          <View style={s.recsLoading}>
+            <ActivityIndicator size="small" color={colors.brand} />
+          </View>
+        ) : recommendations.length > 0 ? (
+          <>
+            <Text style={s.sectionLabel}>Recommended for you</Text>
+            {recommendations.map((rec) => (
+              <TouchableOpacity
+                key={rec.id}
+                style={[s.recCard, rec.tone === 'positive' && s.recCardPositive]}
+                onPress={() => goToReco(rec)}
+                activeOpacity={0.85}
+                disabled={!rec.screen}
+              >
+                <View
+                  style={[
+                    s.recIconWrap,
+                    { backgroundColor: (rec.tone === 'positive' ? colors.success : colors.brand) + '18' },
+                  ]}
+                >
+                  <Ionicons
+                    name={rec.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={rec.tone === 'positive' ? colors.success : colors.brand}
+                  />
+                </View>
+                <View style={s.recBody}>
+                  <Text style={s.recTitle}>{rec.title}</Text>
+                  <Text style={s.recDesc}>{rec.body}</Text>
+                </View>
+                {rec.screen && <Ionicons name="chevron-forward" size={18} color={colors.tabInactive} />}
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : (
+          <View style={s.recAllGood}>
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+            <Text style={s.recAllGoodText}>
+              Your store looks great. Keep taking orders and check back for new growth tips.
+            </Text>
+          </View>
+        )}
+
         {/* Feature tiles */}
-        <Text style={s.sectionLabel}>Tools</Text>
+        <Text style={[s.sectionLabel, { marginTop: 20 }]}>Tools</Text>
         {HUB_TILES.map((tile) => {
           const badge = TIER_BADGE[tile.tier];
           return (
@@ -253,6 +325,33 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
     marginBottom: 10,
   },
+
+  recsLoading: { paddingVertical: 24, alignItems: 'center' },
+  recCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.brand + '30',
+  },
+  recCardPositive: { borderColor: colors.success + '35' },
+  recIconWrap: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  recBody: { flex: 1 },
+  recTitle: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+  recDesc: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  recAllGood: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: colors.success + '12', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: colors.success + '30',
+  },
+  recAllGoodText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
 
   tile: {
     flexDirection: 'row',

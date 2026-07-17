@@ -34,7 +34,7 @@ async function fetchProduct(productId: string): Promise<Product | null> {
   const { data } = await supabase
     .from('products')
     .select(
-      'id, store_id, name, description, price, is_available, category, images, image_url, sort_order, metadata, created_at, updated_at',
+      'id, store_id, name, description, price, is_available, category, image_url, photo_url, sort_order, metadata, created_at, updated_at',
     )
     .eq('id', productId)
     .maybeSingle();

@@ -12,6 +12,7 @@ export interface Product {
   category_id?: string | null;
   images?: string[] | null;
   image_url?: string | null;
+  photo_url?: string | null;
   sort_order?: number | null;
   sold_out_status?: 'available' | 'sold_out_today' | 'sold_out_until' | 'hidden' | null;
   sold_out_until?: string | null;
@@ -46,7 +47,7 @@ export function getProductImageUrl(product: Product): string | null {
   if (Array.isArray(product.images) && product.images.length > 0) {
     return product.images[0];
   }
-  return product.image_url ?? null;
+  return product.image_url ?? product.photo_url ?? null;
 }
 
 export function isProductAvailable(product: Product): boolean {

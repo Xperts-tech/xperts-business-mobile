@@ -25,6 +25,10 @@ type AnalyticsData = {
   cancelledOrders: number;
   pendingOrders: number;
   topProducts: Array<{ name: string; quantity: number; revenue: number }>;
+  uniqueCustomers: number;
+  newCustomers: number;
+  returningCustomers: number;
+  repeatRate: number; // % of this period's customers who had ordered before
 };
 
 const PERIODS: { key: Period; label: string }[] = [
@@ -87,7 +91,7 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
 
     const { data: orders } = await supabase
       .from('orders')
-      .select('id, status, final_price, price_estimate, created_at')
+      .select('id, status, final_price, price_estimate, created_at, customer_id')
       .eq('business_id', selectedBusiness.id)
       .gte('created_at', since);
 
@@ -96,6 +100,7 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
       status: string;
       final_price: number | null;
       price_estimate: number | null;
+      customer_id: string | null;
     }>;
 
     const completed = orderList.filter((o) =>
@@ -135,6 +140,31 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
+    // ── Customer metrics (from orders.customer_id) ──────────────────────────
+    // A customer is "returning" if they placed an order for this business
+    // before the selected period started; otherwise "new".
+    const customerIds = Array.from(
+      new Set(orderList.map((o) => o.customer_id).filter((c): c is string => !!c)),
+    );
+    let returningCustomers = 0;
+    if (customerIds.length > 0) {
+      const { data: priorRows } = await supabase
+        .from('orders')
+        .select('customer_id')
+        .eq('business_id', selectedBusiness.id)
+        .in('customer_id', customerIds)
+        .lt('created_at', since);
+      const priorSet = new Set(
+        (priorRows ?? []).map((r) => (r as { customer_id: string | null }).customer_id).filter(Boolean),
+      );
+      returningCustomers = customerIds.filter((id) => priorSet.has(id)).length;
+    }
+    const uniqueCustomers = customerIds.length;
+    const newCustomers = uniqueCustomers - returningCustomers;
+    const repeatRate = uniqueCustomers > 0
+      ? Math.round((returningCustomers / uniqueCustomers) * 100)
+      : 0;
+
     setData({
       totalRevenue,
       totalOrders: orderList.length,
@@ -143,6 +173,10 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
       cancelledOrders: cancelled.length,
       pendingOrders: pending.length,
       topProducts,
+      uniqueCustomers,
+      newCustomers,
+      returningCustomers,
+      repeatRate,
     });
     setLoading(false);
   }, [selectedBusiness?.id, period]);
@@ -242,6 +276,56 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
               accent={colors.danger}
             />
           </View>
+
+          {/* Customers */}
+          {(data?.uniqueCustomers ?? 0) > 0 && (
+            <>
+              <Text style={s.sectionTitle}>Customers</Text>
+              <View style={s.statsGrid}>
+                <StatCard
+                  icon="people-outline"
+                  label="Unique Customers"
+                  value={String(data?.uniqueCustomers ?? 0)}
+                  accent={colors.brand}
+                />
+                <StatCard
+                  icon="repeat-outline"
+                  label="Returning"
+                  value={String(data?.returningCustomers ?? 0)}
+                  sub={`${data?.repeatRate ?? 0}% repeat`}
+                  accent={colors.success}
+                />
+                <StatCard
+                  icon="person-add-outline"
+                  label="New"
+                  value={String(data?.newCustomers ?? 0)}
+                  accent={colors.info}
+                />
+              </View>
+              <View style={s.rateCard}>
+                <View style={s.rateHeader}>
+                  <Text style={s.rateLabel}>Repeat Customer Rate</Text>
+                  <Text style={[s.ratePct, { color: (data?.repeatRate ?? 0) >= 30 ? colors.success : colors.warning }]}>
+                    {data?.repeatRate ?? 0}%
+                  </Text>
+                </View>
+                <View style={s.rateTrack}>
+                  <View
+                    style={[
+                      s.rateFill,
+                      {
+                        width: `${data?.repeatRate ?? 0}%` as `${number}%`,
+                        backgroundColor: (data?.repeatRate ?? 0) >= 30 ? colors.success : colors.warning,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={s.rateNote}>
+                  Share of this period&apos;s customers who ordered from you before.
+                </Text>
+              </View>
+            </>
+          )}
 
           {/* Completion rate bar */}
           <View style={s.rateCard}>
@@ -382,6 +466,7 @@ const s = StyleSheet.create({
   ratePct: { fontSize: 16, fontWeight: '800' },
   rateTrack: { height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden' },
   rateFill: { height: '100%', borderRadius: 4 },
+  rateNote: { fontSize: 11, color: colors.textMuted, marginTop: 8, lineHeight: 16 },
 
   productsCard: {
     backgroundColor: colors.card,
