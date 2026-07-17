@@ -16,6 +16,7 @@ import { colors } from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { submitServiceRequest } from '@/services/businessServicesService';
+import { generateCreativeContent } from '@/services/creativeService';
 import type { CreativeStudioScreenProps } from '@/types/navigation';
 
 type Channel = 'instagram' | 'facebook' | 'whatsapp' | 'general';
@@ -67,6 +68,7 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
   const [input, setInput] = useState('');
   const [generated, setGenerated] = useState('');
+  const [aiUsed, setAiUsed] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -80,11 +82,28 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
       return;
     }
     setGenerating(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const result = generateCaption(selectedTemplate, input.trim(), channel, selectedBusiness?.name ?? '');
-    setGenerated(result);
+
+    // Try real AI first; fall back to the local template if it isn't available.
+    let text = '';
+    let usedAi = false;
+    if (selectedBusiness?.id) {
+      const res = await generateCreativeContent({
+        businessId:    selectedBusiness.id,
+        channel,
+        templateLabel: selectedTemplate.label,
+        input:         input.trim(),
+        storeName:     selectedBusiness.name ?? '',
+      });
+      if (res.content) { text = res.content; usedAi = true; }
+    }
+    if (!text) {
+      text = generateCaption(selectedTemplate, input.trim(), channel, selectedBusiness?.name ?? '');
+    }
+
+    setGenerated(text);
+    setAiUsed(usedAi);
     setGenerating(false);
-  }, [input, selectedTemplate, channel, selectedBusiness?.name]);
+  }, [input, selectedTemplate, channel, selectedBusiness?.id, selectedBusiness?.name]);
 
   const handleCopy = useCallback(async () => {
     if (!generated) return;
@@ -238,7 +257,7 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
         {!!generated && (
           <View style={s.outputCard}>
             <View style={s.outputHeader}>
-              <Text style={s.outputTitle}>Generated Content</Text>
+              <Text style={s.outputTitle}>{aiUsed ? '✨ AI draft' : 'Draft'}</Text>
               <View style={s.outputActions}>
                 <TouchableOpacity onPress={handleCopy} style={s.outputActionBtn} activeOpacity={0.8}>
                   <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color={copied ? colors.brand : colors.textMuted} />
@@ -263,7 +282,16 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
                 </TouchableOpacity>
               </View>
             </View>
-            <Text style={s.outputText}>{generated}</Text>
+            <TextInput
+              style={s.outputInput}
+              value={generated}
+              onChangeText={setGenerated}
+              multiline
+              textAlignVertical="top"
+            />
+            <Text style={s.outputHint}>
+              Edit this before you post — {aiUsed ? 'AI-generated, so double-check the details.' : 'personalise it for best results.'}
+            </Text>
 
             <TouchableOpacity
               style={s.regenerateBtn}
@@ -415,6 +443,19 @@ const s = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 14,
   },
+  outputInput: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 21,
+    backgroundColor: colors.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    minHeight: 120,
+    marginBottom: 8,
+  },
+  outputHint: { fontSize: 11, color: colors.textMuted, marginBottom: 12, lineHeight: 16 },
   regenerateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
