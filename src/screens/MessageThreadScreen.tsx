@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/constants/colors';
+import { supabase } from '@/lib/supabase';
 import { loadThreadMessages, sendMessage } from '@/services/messageService';
 import type { Message } from '@/types/orders';
 import type { MessageThreadScreenProps } from '@/types/navigation';
@@ -82,6 +83,19 @@ export default function MessageThreadScreen({ route, navigation }: MessageThread
   }, [orderId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Live updates — new messages (from the customer or Xperts support) stream in.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`order-messages-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'order_messages', filter: `order_id=eq.${orderId}` },
+        () => { void load(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [orderId, load]);
 
   async function handleSend() {
     const text = draft.trim();

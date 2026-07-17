@@ -12,48 +12,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { colors } from '@/constants/colors';
 import {
-  loadPayouts,
-  getPayoutStatusColor,
-  getPayoutStatusLabel,
-  type Payout,
+  loadPayoutSummary,
+  formatMoney,
+  type EarningOrder,
+  type PayoutSummary,
 } from '@/services/payoutService';
 import type { PayoutsScreenProps } from '@/types/navigation';
 
-function formatAmount(amount: number): string {
-  return `$${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatDate(d: string): string {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatDateRange(from: string | null | undefined, to: string | null | undefined): string {
-  if (!from && !to) return '—';
-  const fmt = (d: string) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  if (from && to) return `${fmt(from)} – ${fmt(to)}`;
-  if (from) return `From ${fmt(from)}`;
-  return `To ${fmt(to!)}`;
-}
-
-function PayoutCard({ payout }: { payout: Payout }) {
-  const statusColor = getPayoutStatusColor(payout.status);
-  const statusLabel = getPayoutStatusLabel(payout.status);
-  const paidDate = payout.paid_at
-    ? new Date(payout.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : null;
-
+function EarningRow({ order }: { order: EarningOrder }) {
+  const label = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8).toUpperCase()}`;
   return (
-    <View style={styles.card}>
-      <View style={styles.cardTop}>
-        <View style={styles.cardLeft}>
-          <Text style={styles.payoutAmount}>{formatAmount(payout.amount)}</Text>
-          <Text style={styles.payoutPeriod}>{formatDateRange(payout.period_start, payout.period_end)}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor + '18', borderColor: statusColor + '45' }]}>
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-        </View>
+    <View style={styles.row}>
+      <View style={styles.rowLeft}>
+        <Text style={styles.rowOrder}>{label}</Text>
+        <Text style={styles.rowDate}>{formatDate(order.created_at)}</Text>
       </View>
-      {paidDate && (
-        <Text style={styles.paidDate}>Paid on {paidDate}</Text>
-      )}
+      <Text style={styles.rowAmount}>{formatMoney(order.amount)}</Text>
     </View>
   );
 }
@@ -62,21 +40,15 @@ export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
   const insets = useSafeAreaInsets();
   const { selectedStoreId } = useBusiness();
 
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [totalPaid, setTotalPaid] = useState(0);
-  const [totalPending, setTotalPending] = useState(0);
+  const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!selectedStoreId) return;
     setLoading(true);
-    const result = await loadPayouts(selectedStoreId);
-    setPayouts(result.payouts);
-    setTotalPaid(result.totalPaid);
-    setTotalPending(result.totalPending);
-    setError(result.error);
+    const result = await loadPayoutSummary(selectedStoreId);
+    setSummary(result);
     setLoading(false);
   }, [selectedStoreId]);
 
@@ -88,13 +60,16 @@ export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
     setRefreshing(false);
   }
 
+  const orders = summary?.orders ?? [];
+  const error = summary?.error ?? null;
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payouts</Text>
+        <Text style={styles.headerTitle}>Earnings & Payouts</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -103,7 +78,7 @@ export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
       ) : error ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>⚠️</Text>
-          <Text style={styles.emptyTitle}>Could not load payouts</Text>
+          <Text style={styles.emptyTitle}>Could not load earnings</Text>
           <Text style={styles.emptyText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
             <Text style={styles.retryBtnText}>Retry</Text>
@@ -111,36 +86,59 @@ export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
         </View>
       ) : (
         <FlatList
-          data={payouts}
-          keyExtractor={(p) => p.id}
-          renderItem={({ item }) => <PayoutCard payout={item} />}
+          data={orders}
+          keyExtractor={(o) => o.id}
+          renderItem={({ item }) => <EarningRow order={item} />}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand} colors={[colors.brand]} />
           }
           ListHeaderComponent={
-            payouts.length > 0 ? (
+            <View style={styles.headerBlock}>
+              {/* Sales summary */}
               <View style={styles.summaryCard}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>{formatAmount(totalPaid)}</Text>
-                  <Text style={styles.summaryLabel}>Total paid out</Text>
+                <Text style={styles.summaryMonth}>{summary?.monthLabel ?? ''}</Text>
+                <Text style={styles.summaryValue}>{formatMoney(summary?.monthSales ?? 0)}</Text>
+                <Text style={styles.summaryLabel}>
+                  Completed sales · {summary?.monthOrderCount ?? 0} order{(summary?.monthOrderCount ?? 0) === 1 ? '' : 's'}
+                </Text>
+              </View>
+
+              {/* How payouts work — business-language explanation */}
+              <View style={styles.infoCard}>
+                <Text style={styles.infoTitle}>How your payouts work</Text>
+                <Text style={styles.infoText}>
+                  Xperts collects what customers pay, then deducts platform and delivery fees.
+                  Your net earnings are paid to your registered account on a rolling basis after
+                  each order is delivered.
+                </Text>
+                <View style={styles.infoDivider} />
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoRowLabel}>Completed sales (shown here)</Text>
+                  <Text style={styles.infoRowValue}>Gross — before Xperts fees</Text>
                 </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryValue, totalPending > 0 && { color: colors.warning }]}>
-                    {formatAmount(totalPending)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Pending</Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoRowLabel}>Your payout</Text>
+                  <Text style={styles.infoRowValue}>Net — after fees</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoRowLabel}>When</Text>
+                  <Text style={styles.infoRowValue}>Rolling, after delivery</Text>
                 </View>
               </View>
-            ) : null
+
+              {orders.length > 0 && (
+                <Text style={styles.listHeading}>Recent completed orders</Text>
+              )}
+            </View>
           }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>💰</Text>
-              <Text style={styles.emptyTitle}>No payouts yet</Text>
+              <Text style={styles.emptyTitle}>No completed orders yet</Text>
               <Text style={styles.emptyText}>
-                Payouts are processed by Xperts after your store goes live and orders are fulfilled.
+                Your earnings appear here once orders are delivered. Payouts are issued by Xperts
+                after fulfilment.
               </Text>
             </View>
           }
@@ -148,7 +146,9 @@ export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
       )}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <Text style={styles.footerNote}>Read-only view. Manage bank details in the web portal.</Text>
+        <Text style={styles.footerNote}>
+          Read-only view. Manage your payout bank details in the web portal.
+        </Text>
       </View>
     </View>
   );
@@ -165,36 +165,44 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', flex: 1, textAlign: 'center' },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
+  listContent: { paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  headerBlock: { gap: 12, marginBottom: 4 },
 
   summaryCard: {
-    backgroundColor: colors.brand, borderRadius: 14, padding: 20,
-    flexDirection: 'row', alignItems: 'center',
-    marginBottom: 6,
+    backgroundColor: colors.brand, borderRadius: 16, padding: 20, alignItems: 'center', gap: 4,
   },
-  summaryItem: { flex: 1, alignItems: 'center', gap: 4 },
-  summaryValue: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
-  summaryLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: 0.5 },
-  summaryDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.25)' },
+  summaryMonth: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryValue: { fontSize: 30, fontWeight: '900', color: '#FFFFFF' },
+  summaryLabel: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.75)' },
 
-  card: {
+  infoCard: {
     backgroundColor: colors.card, borderRadius: 14, padding: 16,
     borderWidth: 1, borderColor: colors.border, gap: 8,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
-  cardLeft: { gap: 3 },
-  payoutAmount: { fontSize: 20, fontWeight: '900', color: colors.textPrimary },
-  payoutPeriod: { fontSize: 12, color: colors.textMuted },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1,
+  infoTitle: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+  infoText: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  infoDivider: { height: 1, backgroundColor: colors.border, marginVertical: 2 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  infoRowLabel: { fontSize: 13, color: colors.textSecondary, flex: 1 },
+  infoRowValue: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+
+  listHeading: {
+    fontSize: 11, fontWeight: '700', color: colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 4,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  paidDate: { fontSize: 12, color: colors.success, fontWeight: '600' },
+
+  row: {
+    backgroundColor: colors.card, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  rowLeft: { gap: 2 },
+  rowOrder: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+  rowDate: { fontSize: 12, color: colors.textMuted },
+  rowAmount: { fontSize: 15, fontWeight: '800', color: colors.textPrimary },
 
   empty: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 32, paddingTop: 60, gap: 10,
   },
   emptyIcon: { fontSize: 48 },
