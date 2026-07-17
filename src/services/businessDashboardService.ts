@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Store } from '@/types/business';
+import { buildOrderScopeOr, type OrderScope } from '@/lib/orderScope';
 
 // Effective business stages (merchant_status ?? status) that still need the
 // store to act. ready_for_pickup = waiting on the driver, not the store.
@@ -22,33 +23,41 @@ export type HomeDashboardData = {
 };
 
 export async function loadHomeDashboard(
-  storeId: string,
+  scope: OrderScope,
   store: Store | null,
 ): Promise<HomeDashboardData> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  // All queries in parallel — each handles its own error gracefully
+  const scopeOr = buildOrderScopeOr(scope);
+  const emptyDash: HomeDashboardData = {
+    todayOrdersCount: 0, activeOrdersCount: 0, needsActionCount: 0,
+    itemIssuesCount: 0, messageThreadsCount: 0, productCount: 0, setupReadiness: 0,
+  };
+  if (!scopeOr) return emptyDash;
+
+  // All queries in parallel — each handles its own error gracefully.
+  // Orders are scoped by business OR store (matches web); products are always
+  // store-scoped (products belong to a store).
   const [todayRes, activeRes, productRes] = await Promise.all([
     // Today's orders (head count only)
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('store_id', storeId)
+      .or(scopeOr)
       .gte('created_at', todayStart.toISOString()),
 
     // Active orders with metadata (to derive item issues + needs-action)
     supabase
       .from('orders')
       .select('id, status, merchant_status, metadata')
-      .eq('store_id', storeId)
+      .or(scopeOr)
       .in('status', ACTIVE_ORDER_STATUSES),
 
-    // Product count
-    supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('store_id', storeId),
+    // Product count (store-scoped)
+    scope.storeId
+      ? supabase.from('products').select('id', { count: 'exact', head: true }).eq('store_id', scope.storeId)
+      : Promise.resolve({ count: 0 } as { count: number }),
   ]);
 
   const activeOrders = (activeRes.data ?? []) as Array<{

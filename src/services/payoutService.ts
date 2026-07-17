@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { buildOrderScopeOr, type OrderScope } from '@/lib/orderScope';
 
 // Business payout / earnings view. Mirrors the web canonical
 // (businessService.getBusinessPayoutSummary): derived from completed/delivered
@@ -33,22 +34,25 @@ function grossOf(o: {
   return Number(o.final_price ?? o.price_estimate ?? o.total_amount ?? 0) || 0;
 }
 
-export async function loadPayoutSummary(storeId: string): Promise<PayoutSummary> {
+export async function loadPayoutSummary(scope: OrderScope): Promise<PayoutSummary> {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select('id, order_number, status, created_at, final_price, price_estimate, total_amount')
-    .eq('store_id', storeId)
-    .in('status', COMPLETED_STATUSES)
-    .order('created_at', { ascending: false })
-    .limit(90);
-
   const empty: PayoutSummary = {
     orders: [], monthLabel, monthSales: 0, monthOrderCount: 0, windowSales: 0, error: null,
   };
+
+  const scopeOr = buildOrderScopeOr(scope);
+  if (!scopeOr) return empty;
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, order_number, status, created_at, final_price, price_estimate, total_amount')
+    .or(scopeOr)
+    .in('status', COMPLETED_STATUSES)
+    .order('created_at', { ascending: false })
+    .limit(90);
 
   if (error) return { ...empty, error: error.message };
 

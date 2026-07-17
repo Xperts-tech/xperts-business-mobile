@@ -1,16 +1,20 @@
 import { supabase } from '@/lib/supabase';
 import type { Message, MessageThread } from '@/types/orders';
+import { buildOrderScopeOr, type OrderScope } from '@/lib/orderScope';
 
-// ── Thread list for a store (via order IDs) ───────────────────────────────────
+// ── Thread list for a business/store (via order IDs) ──────────────────────────
 
 export async function loadMessageThreads(
-  storeId: string,
+  scope: OrderScope,
 ): Promise<{ threads: MessageThread[]; error: string | null }> {
-  // Get recent non-terminal order IDs for this store
+  const scopeOr = buildOrderScopeOr(scope);
+  if (!scopeOr) return { threads: [], error: null };
+
+  // Get recent non-terminal order IDs for this business/store
   const { data: orderRows, error: ordersErr } = await supabase
     .from('orders')
-    .select('id, order_number, status')
-    .eq('store_id', storeId)
+    .select('id, order_number, status, store_id')
+    .or(scopeOr)
     .not('status', 'in', '("cancelled","rejected")')
     .order('created_at', { ascending: false })
     .limit(100);
@@ -21,9 +25,9 @@ export async function loadMessageThreads(
 
   const orderIds = orders.map((o: { id: string }) => o.id);
   const orderMap = Object.fromEntries(
-    orders.map((o: { id: string; order_number?: string | null; status: string }) => [
+    orders.map((o: { id: string; order_number?: string | null; status: string; store_id?: string | null }) => [
       o.id,
-      { id: o.id, order_number: o.order_number ?? null, status: o.status, store_id: storeId },
+      { id: o.id, order_number: o.order_number ?? null, status: o.status, store_id: o.store_id ?? scope.storeId ?? '' },
     ]),
   );
 

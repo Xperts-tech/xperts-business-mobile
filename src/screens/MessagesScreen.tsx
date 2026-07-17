@@ -77,7 +77,7 @@ function ThreadCard({
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { selectedStoreId } = useBusiness();
+  const { selectedBusinessId, selectedStoreId } = useBusiness();
 
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [loading, setLoading] = useState(false);
@@ -85,13 +85,16 @@ export default function MessagesScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!selectedStoreId) return;
+    if (!selectedBusinessId && !selectedStoreId) return;
     setLoading(true);
-    const { threads: rows, error: err } = await loadMessageThreads(selectedStoreId);
+    const { threads: rows, error: err } = await loadMessageThreads({
+      businessId: selectedBusinessId,
+      storeId: selectedStoreId,
+    });
     setThreads(rows);
     setError(err);
     setLoading(false);
-  }, [selectedStoreId]);
+  }, [selectedBusinessId, selectedStoreId]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -101,7 +104,7 @@ export default function MessagesScreen() {
     setRefreshing(false);
   }
 
-  const noStore = !selectedStoreId;
+  const noStore = !selectedBusinessId && !selectedStoreId;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

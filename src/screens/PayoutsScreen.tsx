@@ -38,19 +38,19 @@ function EarningRow({ order }: { order: EarningOrder }) {
 
 export default function PayoutsScreen({ navigation }: PayoutsScreenProps) {
   const insets = useSafeAreaInsets();
-  const { selectedStoreId } = useBusiness();
+  const { selectedBusinessId, selectedStoreId } = useBusiness();
 
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    if (!selectedStoreId) return;
+    if (!selectedBusinessId && !selectedStoreId) return;
     setLoading(true);
-    const result = await loadPayoutSummary(selectedStoreId);
+    const result = await loadPayoutSummary({ businessId: selectedBusinessId, storeId: selectedStoreId });
     setSummary(result);
     setLoading(false);
-  }, [selectedStoreId]);
+  }, [selectedBusinessId, selectedStoreId]);
 
   useEffect(() => { void load(); }, [load]);
 

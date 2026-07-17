@@ -181,24 +181,27 @@ export default function HomeScreen() {
   // ── Data load ─────────────────────────────────────────────────────────────
 
   const loadDashboard = useCallback(async () => {
-    if (!selectedStoreId) return;
+    if (!selectedBusiness?.id && !selectedStoreId) return;
     setDashLoading(true);
     try {
-      const data = await loadHomeDashboard(selectedStoreId, selectedStore);
+      const data = await loadHomeDashboard(
+        { businessId: selectedBusiness?.id ?? null, storeId: selectedStoreId },
+        selectedStore,
+      );
       setDashData(data);
     } catch {
       // non-fatal — dashboard shows last good data or zeros
     } finally {
       setDashLoading(false);
     }
-  }, [selectedStoreId, selectedStore]);
+  }, [selectedBusiness?.id, selectedStoreId, selectedStore]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
 
   // Live updates — new/changed orders refresh the home dashboard counts.
-  useOrdersRealtime(selectedStoreId, () => {
+  useOrdersRealtime({ businessId: selectedBusiness?.id ?? null, storeId: selectedStoreId }, () => {
     void loadDashboard();
   });
 

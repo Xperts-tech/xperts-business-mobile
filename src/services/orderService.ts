@@ -6,6 +6,7 @@ import {
   MERCHANT_NOTIFY_EVENT,
   ALLOWED_ORDER_STATUSES,
 } from '@/types/orders';
+import { buildOrderScopeOr, type OrderScope } from '@/lib/orderScope';
 
 const PAGE_SIZE = 20;
 
@@ -24,22 +25,27 @@ const DONE_STATUSES = ['delivered', 'completed', 'cancelled', 'rejected'];
 // ── List ──────────────────────────────────────────────────────────────────────
 
 export async function loadOrders(
-  storeId: string,
+  scope: OrderScope,
   filter: OrderFilter = 'all',
   page = 0,
 ): Promise<{ orders: Order[]; hasMore: boolean; error: string | null }> {
+  const scopeOr = buildOrderScopeOr(scope);
+  if (!scopeOr) return { orders: [], hasMore: false, error: null };
+
   let query = supabase
     .from('orders')
     .select(
       'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, order_number, customer_id, delivery_note',
     )
-    .eq('store_id', storeId)
+    .or(scopeOr)
     .order('created_at', { ascending: false })
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   if (filter === 'needs_action') {
     // Store still owes an action: pending, or actively accepted/preparing.
     // (ready_for_pickup = waiting on the driver, not the store.)
+    // Note: an `.or()` filter chained after another `.or()` is AND-combined by
+    // PostgREST, so this correctly narrows within the business/store scope.
     query = query.or(
       'status.eq.pending,merchant_status.in.(accepted_by_store,preparing)',
     );

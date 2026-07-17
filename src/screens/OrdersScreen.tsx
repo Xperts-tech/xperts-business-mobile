@@ -99,7 +99,7 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { selectedStoreId } = useBusiness();
+  const { selectedBusinessId, selectedStoreId } = useBusiness();
 
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [orders, setOrders] = useState<Order[]>([]);
@@ -115,12 +115,12 @@ export default function OrdersScreen() {
 
   const fetchOrders = useCallback(
     async (nextFilter: OrderFilter, nextPage: number, append: boolean) => {
-      if (!selectedStoreId) return;
+      if (!selectedBusinessId && !selectedStoreId) return;
       if (nextPage === 0 && !append) setLoading(true);
       else setLoadingMore(true);
 
       const { orders: rows, hasMore: more, error: err } = await loadOrders(
-        selectedStoreId,
+        { businessId: selectedBusinessId, storeId: selectedStoreId },
         nextFilter,
         nextPage,
       );
@@ -135,7 +135,7 @@ export default function OrdersScreen() {
       setLoading(false);
       setLoadingMore(false);
     },
-    [selectedStoreId],
+    [selectedBusinessId, selectedStoreId],
   );
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function OrdersScreen() {
   }, [filter, fetchOrders]);
 
   // Live updates — new/changed orders refresh the current filter's first page.
-  useOrdersRealtime(selectedStoreId, () => {
+  useOrdersRealtime({ businessId: selectedBusinessId, storeId: selectedStoreId }, () => {
     void fetchOrders(activeFilter.current, 0, false);
   });
 
@@ -160,7 +160,7 @@ export default function OrdersScreen() {
     void fetchOrders(filter, page + 1, true);
   }
 
-  const noStore = !selectedStoreId;
+  const noStore = !selectedBusinessId && !selectedStoreId;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
