@@ -1,15 +1,14 @@
 import { supabase } from '@/lib/supabase';
 import type { Store } from '@/types/business';
 
-// Statuses that mean an order needs the store to act on it
-const NEEDS_ACTION_STATUSES = ['pending', 'accepted', 'preparing', 'ready'];
+// Effective business stages (merchant_status ?? status) that still need the
+// store to act. ready_for_pickup = waiting on the driver, not the store.
+const NEEDS_ACTION_STAGES = ['pending', 'accepted_by_store', 'preparing'];
 
-// All non-terminal statuses (order is still in flight)
+// Constraint-valid non-terminal statuses (order is still in flight). Merchant
+// stages (preparing/ready_for_pickup) collapse to status='accepted' in the DB.
 const ACTIVE_ORDER_STATUSES = [
-  'pending', 'accepted', 'accepted_by_driver', 'preparing', 'ready',
-  'assigned', 'assigned_to_driver', 'en_route_to_pickup',
-  'arrived_at_pickup', 'in_progress', 'picked_up', 'on_the_way',
-  'en_route_to_dropoff', 'delivered',
+  'pending', 'accepted', 'assigned', 'in_progress', 'picked_up', 'on_the_way',
 ];
 
 export type HomeDashboardData = {
@@ -41,7 +40,7 @@ export async function loadHomeDashboard(
     // Active orders with metadata (to derive item issues + needs-action)
     supabase
       .from('orders')
-      .select('id, status, metadata')
+      .select('id, status, merchant_status, metadata')
       .eq('store_id', storeId)
       .in('status', ACTIVE_ORDER_STATUSES),
 
@@ -55,6 +54,7 @@ export async function loadHomeDashboard(
   const activeOrders = (activeRes.data ?? []) as Array<{
     id: string;
     status: string;
+    merchant_status: string | null;
     metadata: Record<string, unknown> | null;
   }>;
   const activeOrderIds = activeOrders.map((o) => o.id);
@@ -66,7 +66,7 @@ export async function loadHomeDashboard(
   }).length;
 
   const needsActionCount = activeOrders.filter((o) =>
-    NEEDS_ACTION_STATUSES.includes(o.status),
+    NEEDS_ACTION_STAGES.includes(o.merchant_status || o.status),
   ).length;
 
   // Count message threads for active orders

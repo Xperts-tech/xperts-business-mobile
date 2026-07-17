@@ -1,18 +1,15 @@
 import { supabase } from '@/lib/supabase';
-import type { Order, OrderItem, OrderCustomer, OrderStatusAction, ORDER_ACTION_TO_STATUS } from '@/types/orders';
-import { ORDER_ACTION_TO_STATUS as ACTION_MAP } from '@/types/orders';
+import type { Order, OrderItem, OrderCustomer, OrderStatusAction } from '@/types/orders';
+import {
+  ORDER_ACTION_TO_MERCHANT_STAGE,
+  MERCHANT_TO_ORDER_STATUS,
+  MERCHANT_NOTIFY_EVENT,
+  ALLOWED_ORDER_STATUSES,
+} from '@/types/orders';
 
 const PAGE_SIZE = 20;
 
 export type OrderFilter = 'all' | 'needs_action' | 'active' | 'done';
-
-const NEEDS_ACTION_STATUSES = ['pending', 'accepted', 'preparing', 'ready'];
-
-const ACTIVE_STATUSES = [
-  'pending', 'accepted', 'accepted_by_driver', 'preparing', 'ready',
-  'assigned', 'assigned_to_driver', 'en_route_to_pickup', 'arrived_at_pickup',
-  'in_progress', 'picked_up', 'on_the_way', 'en_route_to_dropoff',
-];
 
 const DONE_STATUSES = ['delivered', 'completed', 'cancelled', 'rejected'];
 
@@ -26,16 +23,21 @@ export async function loadOrders(
   let query = supabase
     .from('orders')
     .select(
-      'id, store_id, status, created_at, updated_at, metadata, total_amount, order_number, customer_id, special_instructions',
+      'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, order_number, customer_id, special_instructions',
     )
     .eq('store_id', storeId)
     .order('created_at', { ascending: false })
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   if (filter === 'needs_action') {
-    query = query.in('status', NEEDS_ACTION_STATUSES);
+    // Store still owes an action: pending, or actively accepted/preparing.
+    // (ready_for_pickup = waiting on the driver, not the store.)
+    query = query.or(
+      'status.eq.pending,merchant_status.in.(accepted_by_store,preparing)',
+    );
   } else if (filter === 'active') {
-    query = query.in('status', ACTIVE_STATUSES);
+    // Any non-terminal order (rejected_by_store maps to status='rejected').
+    query = query.not('status', 'in', `(${DONE_STATUSES.join(',')})`);
   } else if (filter === 'done') {
     query = query.in('status', DONE_STATUSES);
   }
@@ -60,7 +62,7 @@ export async function loadOrderDetail(
     supabase
       .from('orders')
       .select(
-        'id, store_id, status, created_at, updated_at, metadata, total_amount, subtotal, delivery_fee, order_number, customer_id, special_instructions',
+        'id, store_id, status, merchant_status, created_at, updated_at, metadata, total_amount, subtotal, delivery_fee, order_number, customer_id, special_instructions',
       )
       .eq('id', orderId)
       .maybeSingle(),
@@ -91,37 +93,44 @@ export async function loadOrderDetail(
 }
 
 // ── Status action ─────────────────────────────────────────────────────────────
-
-const NOTIFY_EVENT: Record<string, string> = {
-  accepted:   'order_accepted',
-  rejected:   'order_rejected',
-  preparing:  'order_preparing',
-  ready:      'order_ready',
-  // web backend statuses
-  accepted_by_store: 'order_accepted',
-  rejected_by_store: 'order_rejected',
-  ready_for_pickup:  'order_ready',
-};
+// Mirrors web businessService.updateBusinessOrderStatus: writes the business
+// stage to orders.merchant_status, maps it to a constraint-safe orders.status,
+// records a timeline event, and fires the correct customer notify event.
+// (Writing status='preparing'/'ready' directly violates orders_status_check.)
 
 export async function applyOrderAction(
   orderId: string,
   action: OrderStatusAction,
   notes?: string,
 ): Promise<{ error: string | null }> {
-  const newStatus = ACTION_MAP[action];
-  const { error } = await supabase
-    .from('orders')
-    .update({
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-      ...(notes ? { metadata: await buildActionMetadata(orderId, action, notes) } : {}),
-    })
-    .eq('id', orderId);
+  const stage = ORDER_ACTION_TO_MERCHANT_STAGE[action];
+  const mappedStatus = MERCHANT_TO_ORDER_STATUS[stage];
+  const safeStatus = ALLOWED_ORDER_STATUSES.has(mappedStatus) ? mappedStatus : null;
 
+  const updatePayload: Record<string, unknown> = {
+    merchant_status: stage,
+    updated_at: new Date().toISOString(),
+  };
+  if (safeStatus) updatePayload.status = safeStatus;
+  if (notes) updatePayload.notes = notes;
+
+  const { error } = await supabase.from('orders').update(updatePayload).eq('id', orderId);
   if (error) return { error: error.message };
 
-  // Fire-and-forget customer notification (matches web backend pattern)
-  const notifyEvent = NOTIFY_EVENT[newStatus];
+  // Timeline event — non-fatal (mirrors web audit trail)
+  void supabase
+    .from('order_timeline_events')
+    .insert({
+      order_id: orderId,
+      event_type: 'merchant_status',
+      title: `Store status: ${stage}`,
+      description: notes || `Store updated this order to ${stage}.`,
+      metadata: { merchant_stage: stage, db_status: safeStatus, source: 'business_mobile' },
+    })
+    .then(undefined, () => {});
+
+  // Fire-and-forget customer notification (correct event vocabulary)
+  const notifyEvent = MERCHANT_NOTIFY_EVENT[stage];
   if (notifyEvent) {
     supabase.functions
       .invoke('order-notify', { body: { order_id: orderId, event: notifyEvent } })
@@ -129,24 +138,6 @@ export async function applyOrderAction(
   }
 
   return { error: null };
-}
-
-async function buildActionMetadata(
-  orderId: string,
-  action: OrderStatusAction,
-  notes: string,
-): Promise<Record<string, unknown>> {
-  const { data } = await supabase
-    .from('orders')
-    .select('metadata')
-    .eq('id', orderId)
-    .maybeSingle();
-
-  const existing = (data?.metadata as Record<string, unknown>) ?? {};
-  return {
-    ...existing,
-    business_action_notes: { action, notes, at: new Date().toISOString() },
-  };
 }
 
 // ── Item issue resolve ────────────────────────────────────────────────────────

@@ -34,6 +34,7 @@ export interface Order {
   store_id: string;
   customer_id?: string | null;
   status: string;
+  merchant_status?: string | null;
   total_amount?: number | null;
   subtotal?: number | null;
   delivery_fee?: number | null;
@@ -78,12 +79,49 @@ export type OrderStatusAction =
   | 'mark_preparing'
   | 'mark_ready';
 
-export const ORDER_ACTION_TO_STATUS: Record<OrderStatusAction, string> = {
-  accept: 'accepted',
-  reject: 'rejected',
+// ── Merchant stage model (matches web businessService.js) ─────────────────────
+// The business-facing stage lives in orders.merchant_status. It is mapped to a
+// constraint-safe orders.status (DB CHECK forbids 'preparing'/'ready'/etc.).
+
+export type MerchantStage =
+  | 'accepted_by_store'
+  | 'preparing'
+  | 'ready_for_pickup'
+  | 'rejected_by_store';
+
+export const ORDER_ACTION_TO_MERCHANT_STAGE: Record<OrderStatusAction, MerchantStage> = {
+  accept: 'accepted_by_store',
+  reject: 'rejected_by_store',
   mark_preparing: 'preparing',
-  mark_ready: 'ready',
+  mark_ready: 'ready_for_pickup',
 };
+
+// DB orders.status has a CHECK constraint — only these values are permitted.
+export const ALLOWED_ORDER_STATUSES = new Set<string>([
+  'pending', 'accepted', 'assigned', 'in_progress', 'picked_up',
+  'on_the_way', 'delivered', 'completed', 'cancelled', 'rejected',
+]);
+
+// Merchant stage → nearest safe DB order status.
+export const MERCHANT_TO_ORDER_STATUS: Record<MerchantStage, string> = {
+  accepted_by_store: 'accepted',
+  preparing: 'accepted',
+  ready_for_pickup: 'accepted',
+  rejected_by_store: 'rejected',
+};
+
+// Merchant stage → order-notify event name for customer alerts (matches web).
+export const MERCHANT_NOTIFY_EVENT: Record<MerchantStage, string> = {
+  accepted_by_store: 'store_accepted',
+  preparing:         'store_preparing',
+  ready_for_pickup:  'ready_for_pickup',
+  rejected_by_store: 'rejected_by_store',
+};
+
+// Effective business stage = merchant_status when set, else raw status.
+export function effectiveStage(order: Pick<Order, 'status' | 'merchant_status'>): string {
+  return order.merchant_status || order.status || '';
+}
 
 export const ORDER_ACTION_LABELS: Record<OrderStatusAction, string> = {
   accept: 'Accept Order',
@@ -92,10 +130,11 @@ export const ORDER_ACTION_LABELS: Record<OrderStatusAction, string> = {
   mark_ready: 'Mark Ready',
 };
 
-// Actions available per status (before permission filtering)
+// Actions available per EFFECTIVE stage (before permission filtering).
 export const AVAILABLE_ACTIONS: Record<string, OrderStatusAction[]> = {
   pending: ['accept', 'reject'],
-  accepted: ['mark_preparing', 'reject'],
+  accepted: ['mark_preparing', 'reject'],           // legacy raw-accepted (no merchant_status)
+  accepted_by_store: ['mark_preparing', 'reject'],
   preparing: ['mark_ready'],
 };
 
@@ -105,7 +144,11 @@ export function getOrderStatusLabel(status: string): string {
   const map: Record<string, string> = {
     pending: 'Pending',
     accepted: 'Accepted',
+    // merchant stages (orders.merchant_status)
+    accepted_by_store: 'Accepted',
     preparing: 'Preparing',
+    ready_for_pickup: 'Ready',
+    rejected_by_store: 'Rejected',
     ready: 'Ready',
     accepted_by_driver: 'Driver Assigned',
     assigned: 'Driver Assigned',
@@ -125,6 +168,11 @@ export function getOrderStatusLabel(status: string): string {
 }
 
 export function getOrderStatusColor(status: string): string {
+  // Merchant stages first — before the substring fallbacks below
+  // (e.g. 'ready_for_pickup' contains 'pickup').
+  if (status === 'rejected_by_store') return '#DC2626';
+  if (status === 'ready_for_pickup') return '#0891B2';
+  if (status === 'accepted_by_store') return '#0284C7';
   if (['pending'].includes(status)) return '#D97706';
   if (['accepted', 'preparing'].includes(status)) return '#0284C7';
   if (['ready'].includes(status)) return '#0891B2';

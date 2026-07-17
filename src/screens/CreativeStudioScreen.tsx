@@ -15,7 +15,7 @@ import * as Clipboard from 'expo-clipboard';
 import { colors } from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { supabase } from '@/lib/supabase';
+import { submitServiceRequest } from '@/services/businessServicesService';
 import type { CreativeStudioScreenProps } from '@/types/navigation';
 
 type Channel = 'instagram' | 'facebook' | 'whatsapp' | 'general';
@@ -61,7 +61,7 @@ function generateCaption(template: Template, input: string, channel: Channel, st
 export default function CreativeStudioScreen({ navigation }: CreativeStudioScreenProps) {
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
-  const { selectedBusiness } = useBusiness();
+  const { selectedBusiness, selectedStoreId } = useBusiness();
 
   const [channel, setChannel] = useState<Channel>('instagram');
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
@@ -99,23 +99,30 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
       Alert.alert('No business', 'Please select a business first.');
       return;
     }
+    if (!profile?.id) {
+      Alert.alert('Not signed in', 'Please sign in again and retry.');
+      return;
+    }
     submittingRef.current = true;
     setSaving(true);
     try {
-      const { error } = await supabase.from('business_service_requests').insert({
-        business_id: selectedBusiness.id,
-        requester_id: profile?.id,
-        request_type: 'creative_content',
-        service_type: selectedTemplate.key,
-        notes: `[${channel.toUpperCase()} — ${selectedTemplate.label}]\n\nInput: ${input}\n\nGenerated:\n${generated}`,
-        status: 'draft',
+      const { error } = await submitServiceRequest({
+        businessId: selectedBusiness.id,
+        storeId: selectedStoreId ?? null,
+        submittedBy: profile.id,
+        // request_type must match bsr_request_type_check; status defaults to
+        // 'new' (the table has no 'draft' status) — flagged in metadata instead.
+        requestType: 'creative_design',
+        title: `${selectedTemplate.label} (${channel})`,
+        description: `[${channel.toUpperCase()} — ${selectedTemplate.label}]\n\nInput: ${input}\n\nGenerated:\n${generated}`,
         metadata: {
           channel,
           template_key: selectedTemplate.key,
           source: 'creative_studio',
+          saved_as_draft: true,
         },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error);
       Alert.alert('Saved!', 'Your draft was saved. You can find it in Service Requests.');
     } catch {
       Alert.alert('Error', 'Could not save draft. Please try again.');
@@ -123,7 +130,7 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
       setSaving(false);
       submittingRef.current = false;
     }
-  }, [generated, selectedBusiness?.id, profile?.id, channel, selectedTemplate, input]);
+  }, [generated, selectedBusiness?.id, selectedStoreId, profile?.id, channel, selectedTemplate, input]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>

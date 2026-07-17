@@ -23,6 +23,7 @@ import {
   setStoreOpenStatus,
   type StoreOpenStatus,
 } from '@/services/businessStoreService';
+import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import type { StaffRole } from '@/types/permissions';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BusinessStackParamList } from '@/types/navigation';
@@ -195,6 +196,11 @@ export default function HomeScreen() {
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  // Live updates — new/changed orders refresh the home dashboard counts.
+  useOrdersRealtime(selectedStoreId, () => {
+    void loadDashboard();
+  });
 
   async function handleRefresh() {
     setRefreshing(true);

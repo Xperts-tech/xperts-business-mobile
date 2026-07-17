@@ -1,9 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { registerPushToken } from '@/services/notificationService';
+import { navigateToOrder } from '@/navigation/navigationRef';
+
+// Routes a tapped notification to the right screen based on its data payload.
+function routeFromNotificationData(data: unknown): void {
+  if (!data || typeof data !== 'object') return;
+  const d = data as Record<string, unknown>;
+  if (d.type === 'new_order' && typeof d.order_id === 'string') {
+    navigateToOrder(d.order_id);
+  }
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -57,6 +67,19 @@ async function getExpoPushToken(): Promise<string | null> {
 export function usePushNotifications() {
   const { user } = useAuth();
 
+  // Cold-start: app opened by tapping a notification while killed.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  const handledColdStartId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const resp = lastResponse;
+    if (!resp) return;
+    const id = resp.notification.request.identifier;
+    if (handledColdStartId.current === id) return;
+    handledColdStartId.current = id;
+    routeFromNotificationData(resp.notification.request.content.data);
+  }, [lastResponse]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -74,8 +97,9 @@ export function usePushNotifications() {
       // Foreground notification received — badge + alert handled by handler above.
     });
 
-    responseSub = Notifications.addNotificationResponseReceivedListener((_response) => {
-      // User tapped a notification — could navigate to relevant screen in future batches.
+    // Warm tap: user taps a notification while the app is running/backgrounded.
+    responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      routeFromNotificationData(response.notification.request.content.data);
     });
 
     return () => {

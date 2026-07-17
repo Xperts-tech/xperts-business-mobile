@@ -97,22 +97,28 @@ export interface SubmitServiceRequestParams {
   title?: string | null;
   description: string;
   businessNotes?: string | null;
+  status?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export async function submitServiceRequest(
   params: SubmitServiceRequestParams,
 ): Promise<{ requestId: string | null; error: string | null }> {
+  const row: Record<string, unknown> = {
+    business_id:    params.businessId,
+    store_id:       params.storeId ?? null,
+    submitted_by:   params.submittedBy,
+    request_type:   params.requestType,
+    title:          params.title ?? null,
+    description:    params.description,
+    business_notes: params.businessNotes ?? null,
+  };
+  if (params.status) row.status = params.status;
+  if (params.metadata) row.metadata = params.metadata;
+
   const { data, error } = await supabase
     .from('business_service_requests')
-    .insert({
-      business_id:    params.businessId,
-      store_id:       params.storeId ?? null,
-      submitted_by:   params.submittedBy,
-      request_type:   params.requestType,
-      title:          params.title ?? null,
-      description:    params.description,
-      business_notes: params.businessNotes ?? null,
-    })
+    .insert(row)
     .select('id')
     .single();
 

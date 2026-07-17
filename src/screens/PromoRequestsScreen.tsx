@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { supabase } from '@/lib/supabase';
+import { submitServiceRequest } from '@/services/businessServicesService';
 import type { PromoRequestsScreenProps } from '@/types/navigation';
 
 type ServiceType =
@@ -104,7 +104,7 @@ const SERVICES: Array<{
 export default function PromoRequestsScreen({ navigation }: PromoRequestsScreenProps) {
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
-  const { selectedBusiness } = useBusiness();
+  const { selectedBusiness, selectedStoreId } = useBusiness();
   const [selected, setSelected] = useState<ServiceType | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -116,37 +116,31 @@ export default function PromoRequestsScreen({ navigation }: PromoRequestsScreenP
       Alert.alert('No business selected', 'Please select a business first.');
       return;
     }
+    if (!profile?.id) {
+      Alert.alert('Not signed in', 'Please sign in again and retry.');
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('business_service_requests').insert({
-        business_id: selectedBusiness.id,
-        requester_id: profile?.id,
-        request_type: 'growth_engine',
-        service_type: selected,
-        notes: notes.trim() || null,
-        status: 'pending',
+      const svc = SERVICES.find((s) => s.key === selected);
+      const { error } = await submitServiceRequest({
+        businessId: selectedBusiness.id,
+        storeId: selectedStoreId ?? null,
+        submittedBy: profile.id,
+        // request_type must match bsr_request_type_check; specific promo type
+        // is preserved in metadata.service_key for the admin queue.
+        requestType: 'growth_campaign',
+        title: svc?.title ?? 'Growth request',
+        description: notes.trim() || `Requested: ${svc?.title ?? selected}`,
         metadata: {
           source: 'business_mobile',
-          service_label: SERVICES.find((s) => s.key === selected)?.title,
+          growth_engine: true,
+          service_key: selected,
+          service_label: svc?.title,
         },
       });
-
-      if (error) {
-        // Fallback: table might not exist yet
-        if (error.code === '42P01') {
-          await supabase.from('service_requests').insert({
-            business_id: selectedBusiness.id,
-            customer_id: profile?.id,
-            request_type: selected,
-            description: `Growth Engine: ${SERVICES.find((s) => s.key === selected)?.title}\n\n${notes}`,
-            status: 'pending',
-            metadata: { growth_engine: true, source: 'business_mobile' },
-          });
-        } else {
-          throw new Error(error.message);
-        }
-      }
+      if (error) throw new Error(error);
 
       Alert.alert(
         'Request submitted!',

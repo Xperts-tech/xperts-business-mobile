@@ -14,7 +14,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { colors } from '@/constants/colors';
 import { loadOrders, type OrderFilter } from '@/services/orderService';
+import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import {
+  effectiveStage,
   formatOrderNumber,
   getOrderStatusColor,
   getOrderStatusLabel,
@@ -72,7 +74,7 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
             {isToday ? formattedTime : `${formattedDate} · ${formattedTime}`}
           </Text>
         </View>
-        <StatusBadge status={order.status} />
+        <StatusBadge status={effectiveStage(order)} />
       </View>
 
       <View style={styles.orderCardBottom}>
@@ -141,6 +143,11 @@ export default function OrdersScreen() {
     setPage(0);
     void fetchOrders(filter, 0, false);
   }, [filter, fetchOrders]);
+
+  // Live updates — new/changed orders refresh the current filter's first page.
+  useOrdersRealtime(selectedStoreId, () => {
+    void fetchOrders(activeFilter.current, 0, false);
+  });
 
   async function handleRefresh() {
     setRefreshing(true);

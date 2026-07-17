@@ -21,6 +21,7 @@ import {
 import {
   AVAILABLE_ACTIONS,
   ORDER_ACTION_LABELS,
+  effectiveStage,
   formatOrderNumber,
   getOrderStatusColor,
   getOrderStatusLabel,
@@ -104,7 +105,7 @@ export default function OrderDetailScreen({ route, navigation }: OrderDetailScre
   // ── Available actions filtered by permission ──────────────────────────────
 
   const availableActions: OrderStatusAction[] = order
-    ? (AVAILABLE_ACTIONS[order.status] ?? []).filter((a) => {
+    ? (AVAILABLE_ACTIONS[effectiveStage(order)] ?? []).filter((a) => {
         if (isAdmin) return true;
         if (a === 'accept' || a === 'reject') return hasPermission('orders.accept');
         if (a === 'mark_preparing' || a === 'mark_ready') return hasPermission('orders.mark_ready');
@@ -251,7 +252,7 @@ export default function OrderDetailScreen({ route, navigation }: OrderDetailScre
         {/* ── Status + time ────────────────────────────────────── */}
         <View style={styles.card}>
           <View style={styles.statusRow}>
-            <StatusBadge status={order.status} />
+            <StatusBadge status={effectiveStage(order)} />
             <Text style={styles.orderTime}>
               {new Date(order.created_at).toLocaleString('en-US', {
                 month: 'short',
