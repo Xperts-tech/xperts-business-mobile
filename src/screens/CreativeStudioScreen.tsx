@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +17,7 @@ import { colors } from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { submitServiceRequest } from '@/services/businessServicesService';
-import { generateCreativeContent } from '@/services/creativeService';
+import { generateCreativeContent, getBrandKit, saveCreative } from '@/services/creativeService';
 import type { CreativeStudioScreenProps } from '@/types/navigation';
 
 type Channel = 'instagram' | 'facebook' | 'whatsapp' | 'general';
@@ -72,7 +73,18 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [brandVoice, setBrandVoice] = useState<string | null>(null);
+  const [brandTagline, setBrandTagline] = useState<string | null>(null);
+  const [savedToLibrary, setSavedToLibrary] = useState(false);
   const submittingRef = useRef(false);
+
+  // Load the business brand kit so generation is on-brand (set on web/mobile).
+  useEffect(() => {
+    if (!selectedBusiness?.id) return;
+    getBrandKit(selectedBusiness.id).then((kit) => {
+      if (kit) { setBrandVoice(kit.brand_voice ?? null); setBrandTagline(kit.tagline ?? null); }
+    });
+  }, [selectedBusiness?.id]);
 
   const coinLocked = selectedTemplate.isPremium;
 
@@ -93,6 +105,10 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
         templateLabel: selectedTemplate.label,
         input:         input.trim(),
         storeName:     selectedBusiness.name ?? '',
+        templateKey:   selectedTemplate.key,
+        kind:          'caption',
+        brandVoice,
+        tagline:       brandTagline,
       });
       if (res.content) { text = res.content; usedAi = true; }
     }
@@ -103,7 +119,21 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
     setGenerated(text);
     setAiUsed(usedAi);
     setGenerating(false);
-  }, [input, selectedTemplate, channel, selectedBusiness?.id, selectedBusiness?.name]);
+  }, [input, selectedTemplate, channel, selectedBusiness?.id, selectedBusiness?.name, brandVoice, brandTagline]);
+
+  const handleShare = useCallback(async () => {
+    if (!generated) return;
+    try { await Share.share({ message: generated }); } catch { /* user cancelled */ }
+  }, [generated]);
+
+  const handleSaveToLibrary = useCallback(async () => {
+    if (!generated || !selectedBusiness?.id) return;
+    const ok = await saveCreative(selectedBusiness.id, {
+      kind: 'caption', templateKey: selectedTemplate.key, channel, bodyText: generated,
+    });
+    if (ok) { setSavedToLibrary(true); setTimeout(() => setSavedToLibrary(false), 2000); }
+    else Alert.alert('Error', 'Could not save to your library.');
+  }, [generated, selectedBusiness?.id, selectedTemplate.key, channel]);
 
   const handleCopy = useCallback(async () => {
     if (!generated) return;
@@ -279,6 +309,14 @@ export default function CreativeStudioScreen({ navigation }: CreativeStudioScree
                       <Text style={s.outputActionLabel}>Save Draft</Text>
                     </>
                   )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveToLibrary} style={s.outputActionBtn} activeOpacity={0.8}>
+                  <Ionicons name={savedToLibrary ? 'checkmark' : 'images-outline'} size={16} color={savedToLibrary ? colors.brand : colors.textMuted} />
+                  <Text style={[s.outputActionLabel, savedToLibrary && { color: colors.brand }]}>{savedToLibrary ? 'Saved!' : 'Library'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleShare} style={s.outputActionBtn} activeOpacity={0.8}>
+                  <Ionicons name="share-social-outline" size={16} color={colors.textMuted} />
+                  <Text style={s.outputActionLabel}>Share</Text>
                 </TouchableOpacity>
               </View>
             </View>
