@@ -21,7 +21,7 @@ type HubTile = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   bg: string;
-  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins' | 'Social';
+  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins' | 'Social' | 'ContentCalendar';
   tier: 'free' | 'coins' | 'sub';
 };
 
@@ -43,6 +43,15 @@ const HUB_TILES: HubTile[] = [
     bg: colors.brand,
     screen: 'PromoRequests',
     tier: 'coins',
+  },
+  {
+    key: 'calendar',
+    title: 'Content Calendar',
+    description: 'Plan posts, schedule them, and auto-publish to your connected accounts',
+    icon: 'calendar-outline',
+    bg: '#0891B2',
+    screen: 'ContentCalendar',
+    tier: 'free',
   },
   {
     key: 'social',

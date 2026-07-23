@@ -32,6 +32,7 @@ import CreativeStudioScreen from '@/screens/CreativeStudioScreen';
 import PromoRequestsScreen from '@/screens/PromoRequestsScreen';
 import StoreQRCodeScreen from '@/screens/StoreQRCodeScreen';
 import SocialScreen from '@/screens/SocialScreen';
+import ContentCalendarScreen from '@/screens/ContentCalendarScreen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -278,6 +279,11 @@ export default function BusinessNavigator() {
       <Stack.Screen
         name="Social"
         component={SocialScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ContentCalendar"
+        component={ContentCalendarScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
