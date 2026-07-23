@@ -48,6 +48,7 @@ export type BusinessStackParamList = {
   StoreQRCode: undefined;
   Social: undefined;
   ContentCalendar: undefined;
+  PromoteStore: undefined;
 };
 
 // ── Business bottom tabs ──────────────────────────────────────────────────────
@@ -99,3 +100,4 @@ export type PromoRequestsScreenProps       = NativeStackScreenProps<BusinessStac
 export type StoreQRCodeScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'StoreQRCode'>;
 export type SocialScreenProps              = NativeStackScreenProps<BusinessStackParamList, 'Social'>;
 export type ContentCalendarScreenProps     = NativeStackScreenProps<BusinessStackParamList, 'ContentCalendar'>;
+export type PromoteStoreScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'PromoteStore'>;

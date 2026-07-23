@@ -21,7 +21,7 @@ type HubTile = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   bg: string;
-  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins' | 'Social' | 'ContentCalendar';
+  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins' | 'Social' | 'ContentCalendar' | 'PromoteStore';
   tier: 'free' | 'coins' | 'sub';
 };
 
@@ -36,11 +36,20 @@ const HUB_TILES: HubTile[] = [
     tier: 'free',
   },
   {
-    key: 'promo',
+    key: 'promote',
     title: 'Promote My Store',
-    description: 'Request featured listings, boosted ads, and Xperts campaign support',
+    description: 'Buy featured listings and marketplace placements with Growth Coins',
     icon: 'megaphone-outline',
     bg: colors.brand,
+    screen: 'PromoteStore',
+    tier: 'coins',
+  },
+  {
+    key: 'promo',
+    title: 'Marketing Help',
+    description: 'Ask the Xperts team to run a campaign or design work for you',
+    icon: 'people-outline',
+    bg: '#7C3AED',
     screen: 'PromoRequests',
     tier: 'coins',
   },
