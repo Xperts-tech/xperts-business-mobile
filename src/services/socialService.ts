@@ -27,7 +27,7 @@ export async function getConnections(businessId: string): Promise<SocialConnecti
 /** Begin Meta OAuth — returns the dialog URL to open in the system browser. */
 export async function startConnect(businessId: string): Promise<{ ok: boolean; url?: string; reason?: string }> {
   try {
-    const { data, error } = await supabase.functions.invoke('meta-oauth-start', { body: { business_id: businessId } });
+    const { data, error } = await supabase.functions.invoke('meta-oauth-start', { body: { business_id: businessId, return_to: 'app' } });
     if (error) return { ok: false, reason: error.message };
     if (!data?.url) return { ok: false, reason: (data?.error as string) ?? 'start_failed' };
     return { ok: true, url: data.url as string };

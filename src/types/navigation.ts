@@ -1,11 +1,12 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 // ── Root stack ────────────────────────────────────────────────────────────────
 
 export type RootStackParamList = {
   Auth: undefined;
-  Business: undefined;
+  Business: NavigatorScreenParams<BusinessStackParamList>;
   AccessDenied: undefined;
 };
 
@@ -46,7 +47,7 @@ export type BusinessStackParamList = {
   CreativeStudio: undefined;
   PromoRequests: undefined;
   StoreQRCode: undefined;
-  Social: undefined;
+  Social: { meta?: string; detail?: string } | undefined; // params arrive via OAuth deep-link return
   ContentCalendar: undefined;
   PromoteStore: undefined;
 };

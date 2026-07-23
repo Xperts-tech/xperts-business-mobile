@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,13 +41,21 @@ const STATE_META: Record<
   not_connected: { label: 'Not connected', color: colors.textSecondary, bg: colors.borderLight, hint: 'Connect to schedule and auto-publish posts.' },
 };
 
-export default function SocialScreen({ navigation }: SocialScreenProps) {
+const RESULT_MSG: Record<string, string> = {
+  connected: 'Connected! Your account is ready.',
+  declined: 'Connection cancelled. You can try again anytime.',
+  no_page: 'No manageable Facebook Page was found on that account.',
+  error: 'Something went wrong connecting. Please try again.',
+};
+
+export default function SocialScreen({ navigation, route }: SocialScreenProps) {
   const insets = useSafeAreaInsets();
   const { selectedBusiness } = useBusiness();
   const businessId = selectedBusiness?.id ?? '';
   const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const shownResultRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     if (!businessId) { setLoading(false); return; }
@@ -58,6 +66,16 @@ export default function SocialScreen({ navigation }: SocialScreenProps) {
 
   // Refresh whenever the screen regains focus (e.g. returning from the OAuth browser).
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Surface the OAuth deep-link result (xperts-business://social?meta=...) once.
+  useEffect(() => {
+    const meta = route.params?.meta;
+    if (meta && shownResultRef.current !== meta) {
+      shownResultRef.current = meta;
+      Alert.alert(meta === 'connected' ? 'Account connected' : 'Connection', RESULT_MSG[meta] ?? 'Connection updated.');
+      load();
+    }
+  }, [route.params?.meta, load]);
 
   const connFor = (key: ChannelKey) => connections.find((c) => c.channel === key);
 
