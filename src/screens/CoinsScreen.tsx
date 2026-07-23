@@ -19,9 +19,21 @@ import {
   type CoinWallet,
   type CoinLedgerEntry,
 } from '@/services/coinsService';
+import { getSubscription, planLabel, type BusinessSubscription } from '@/services/billingService';
+import ManageBillingCard from '@/components/ManageBillingCard';
 import type { BusinessStackParamList } from '@/types/navigation';
 
 type Nav = NativeStackNavigationProp<BusinessStackParamList>;
+
+const SUB_STATUS_LABEL: Record<string, string> = {
+  trialing: 'Trial', active: 'Active', past_due: 'Past due',
+};
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return ''; }
+}
 
 const EARN_WAYS = [
   { icon: '✅', title: 'Complete your store profile',  desc: 'Earn coins when your store is fully set up and approved.' },
@@ -61,17 +73,20 @@ export default function CoinsScreen() {
 
   const [wallet,     setWallet]     = useState<CoinWallet | null>(null);
   const [entries,    setEntries]    = useState<CoinLedgerEntry[]>([]);
+  const [sub,        setSub]        = useState<BusinessSubscription | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedBusinessId) { setLoading(false); return; }
-    const [wRes, lRes] = await Promise.all([
+    const [wRes, lRes, sRes] = await Promise.all([
       getMyCoinWallet(selectedBusinessId),
       listMyCoinLedger(selectedBusinessId),
+      getSubscription(selectedBusinessId),
     ]);
     setWallet(wRes.wallet);
     setEntries(lRes.entries);
+    setSub(sRes);
     setLoading(false);
   }, [selectedBusinessId]);
 
@@ -128,15 +143,28 @@ export default function CoinsScreen() {
             )}
           </View>
 
-          {/* ── Coming soon banner (no wallet yet) ─────────────── */}
-          {!wallet && (
-            <View style={styles.comingSoonCard}>
-              <Text style={styles.comingSoonTitle}>🚀 Coins launching soon</Text>
-              <Text style={styles.comingSoonBody}>
-                Your Xperts Coins wallet will be created automatically once you start earning. Complete your store setup to get your first coins.
-              </Text>
+          {/* ── Current plan (view-only) ───────────────────────── */}
+          <Text style={styles.sectionLabel}>Your Plan</Text>
+          <View style={styles.planCard}>
+            <View style={styles.planRow}>
+              <View>
+                <Text style={styles.planName}>{planLabel(sub?.plan_key)}</Text>
+                {sub?.billing_next_at ? (
+                  <Text style={styles.planMeta}>Renews {fmtDate(sub.billing_next_at)}</Text>
+                ) : (
+                  <Text style={styles.planMeta}>No paid plan — upgrade on the web portal.</Text>
+                )}
+              </View>
+              <View style={[styles.planBadge, sub ? styles.planBadgeActive : styles.planBadgeFree]}>
+                <Text style={[styles.planBadgeText, sub ? styles.planBadgeTextActive : styles.planBadgeTextFree]}>
+                  {sub ? (SUB_STATUS_LABEL[sub.status] ?? sub.status) : 'Free'}
+                </Text>
+              </View>
             </View>
-          )}
+          </View>
+
+          {/* ── Manage billing (purchases happen on the web portal) ── */}
+          <ManageBillingCard />
 
           {/* ── Ways to earn ───────────────────────────────────── */}
           <Text style={styles.sectionLabel}>Ways to Earn</Text>
@@ -227,16 +255,22 @@ const styles = StyleSheet.create({
   },
   lifetimePillText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
 
-  comingSoonCard: {
-    backgroundColor: '#FFF7ED',
+  planCard: {
+    backgroundColor: colors.card,
     borderRadius:    16,
     borderWidth:     1,
-    borderColor:     '#FED7AA',
+    borderColor:     colors.border,
     padding:         16,
-    gap:             8,
   },
-  comingSoonTitle: { fontSize: 14, fontWeight: '800', color: '#92400E' },
-  comingSoonBody:  { fontSize: 13, color: '#B45309', lineHeight: 19 },
+  planRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  planName:  { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+  planMeta:  { marginTop: 2, fontSize: 12, color: colors.textMuted },
+  planBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  planBadgeActive: { backgroundColor: colors.successSurface },
+  planBadgeFree:   { backgroundColor: colors.borderLight },
+  planBadgeText:       { fontSize: 11, fontWeight: '800' },
+  planBadgeTextActive: { color: colors.success },
+  planBadgeTextFree:   { color: colors.textSecondary },
 
   sectionLabel: {
     fontSize:      11,

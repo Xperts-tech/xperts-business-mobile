@@ -26,6 +26,7 @@ import {
   type PlacementCatalogItem,
   type Placement,
 } from '@/services/placementService';
+import { openBillingPortal } from '@/services/billingService';
 import type { PromoteStoreScreenProps } from '@/types/navigation';
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -127,7 +128,7 @@ export default function PromoteStoreScreen({ navigation }: PromoteStoreScreenPro
               <Text style={s.coinLabel}>Growth Coins</Text>
               <Text style={s.coinValue}>{coins.toLocaleString()} 🪙</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Coins')} activeOpacity={0.8}>
+            <TouchableOpacity onPress={openBillingPortal} activeOpacity={0.8}>
               <Text style={s.topUp}>Top up</Text>
             </TouchableOpacity>
           </View>
