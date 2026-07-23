@@ -46,6 +46,7 @@ export type BusinessStackParamList = {
   CreativeStudio: undefined;
   PromoRequests: undefined;
   StoreQRCode: undefined;
+  Social: undefined;
 };
 
 // ── Business bottom tabs ──────────────────────────────────────────────────────
@@ -95,3 +96,4 @@ export type GrowthStudioScreenProps        = NativeStackScreenProps<BusinessStac
 export type CreativeStudioScreenProps      = NativeStackScreenProps<BusinessStackParamList, 'CreativeStudio'>;
 export type PromoRequestsScreenProps       = NativeStackScreenProps<BusinessStackParamList, 'PromoRequests'>;
 export type StoreQRCodeScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'StoreQRCode'>;
+export type SocialScreenProps              = NativeStackScreenProps<BusinessStackParamList, 'Social'>;

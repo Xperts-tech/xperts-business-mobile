@@ -21,7 +21,7 @@ type HubTile = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   bg: string;
-  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins';
+  screen: 'CreativeStudio' | 'PromoRequests' | 'StoreQRCode' | 'Analytics' | 'Coins' | 'Social';
   tier: 'free' | 'coins' | 'sub';
 };
 
@@ -43,6 +43,15 @@ const HUB_TILES: HubTile[] = [
     bg: colors.brand,
     screen: 'PromoRequests',
     tier: 'coins',
+  },
+  {
+    key: 'social',
+    title: 'Social Accounts',
+    description: 'Connect Facebook & Instagram to schedule and auto-publish your posts',
+    icon: 'share-social-outline',
+    bg: '#1D4ED8',
+    screen: 'Social',
+    tier: 'free',
   },
   {
     key: 'qr',
