@@ -49,6 +49,8 @@ export type BusinessStackParamList = {
   StoreQRCode: undefined;
   Social: { meta?: string; detail?: string } | undefined; // params arrive via OAuth deep-link return
   ContentCalendar: undefined;
+  RentalHost: undefined;
+  RentalVehicleEditor: { partnerId: string; vehicle?: import('@/services/rentalHostService').HostVehicle };
   PromoteStore: undefined;
 };
 
@@ -101,4 +103,6 @@ export type PromoRequestsScreenProps       = NativeStackScreenProps<BusinessStac
 export type StoreQRCodeScreenProps         = NativeStackScreenProps<BusinessStackParamList, 'StoreQRCode'>;
 export type SocialScreenProps              = NativeStackScreenProps<BusinessStackParamList, 'Social'>;
 export type ContentCalendarScreenProps     = NativeStackScreenProps<BusinessStackParamList, 'ContentCalendar'>;
+export type RentalHostScreenProps          = NativeStackScreenProps<BusinessStackParamList, 'RentalHost'>;
+export type RentalVehicleEditorScreenProps = NativeStackScreenProps<BusinessStackParamList, 'RentalVehicleEditor'>;
 export type PromoteStoreScreenProps        = NativeStackScreenProps<BusinessStackParamList, 'PromoteStore'>;

@@ -174,6 +174,11 @@ export default function MoreScreen() {
             onPress={() => navigation.navigate('ServicesPortal')}
           />
           <MoreRow
+            icon="🚗"
+            label="Rental Hosting"
+            onPress={() => navigation.navigate('RentalHost')}
+          />
+          <MoreRow
             icon="📋"
             label="Launch Checklist"
             onPress={() => navigation.navigate('LaunchChecklist')}

@@ -33,6 +33,8 @@ import PromoRequestsScreen from '@/screens/PromoRequestsScreen';
 import StoreQRCodeScreen from '@/screens/StoreQRCodeScreen';
 import SocialScreen from '@/screens/SocialScreen';
 import ContentCalendarScreen from '@/screens/ContentCalendarScreen';
+import RentalHostScreen from '@/screens/RentalHostScreen';
+import RentalVehicleEditorScreen from '@/screens/RentalVehicleEditorScreen';
 import PromoteStoreScreen from '@/screens/PromoteStoreScreen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -287,6 +289,8 @@ export default function BusinessNavigator() {
         component={ContentCalendarScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <Stack.Screen name="RentalHost" component={RentalHostScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="RentalVehicleEditor" component={RentalVehicleEditorScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen
         name="PromoteStore"
         component={PromoteStoreScreen}
